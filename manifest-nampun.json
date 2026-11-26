@@ -1,0 +1,21 @@
+{
+    "name":  "Nampun",
+    "short_name":  "Nampun",
+    "start_url":  "./nampun.html",
+    "scope":  "./",
+    "display":  "standalone",
+    "background_color":  "#fff8ec",
+    "theme_color":  "#2f8fd8",
+    "icons":  [
+                  {
+                      "type":  "image/png",
+                      "sizes":  "192x192",
+                      "src":  "icons/nampun-192.png"
+                  },
+                  {
+                      "type":  "image/png",
+                      "sizes":  "512x512",
+                      "src":  "icons/nampun-512.png"
+                  }
+              ]
+}

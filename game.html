@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>กระปุกออมสินวิเศษ</title>
+<style>
+  :root {
+    --bg: #fff8ec;
+    --card: #ffffff;
+    --ink: #3b2f2f;
+    --muted: #8a7a6a;
+    --pink: #ff7aa2;
+    --pink-dark: #e0557f;
+    --gold: #f5b700;
+    --green: #2e9e5b;
+    --blue: #5b8def;
+    --line: #f0e2cc;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Leelawadee UI", "Tahoma", sans-serif;
+    font-size: 18px;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { text-align: center; font-size: 2rem; margin: 0.2em 0; }
+  h2 { margin: 0 0 8px; font-size: 1.3rem; }
+  h3 { margin: 16px 0 6px; font-size: 1.05rem; }
+  .sub { text-align: center; color: var(--muted); margin: 0 0 20px; }
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 0 var(--line);
+    margin-bottom: 16px;
+  }
+  .hidden { display: none !important; }
+  .center { text-align: center; }
+  .muted { color: var(--muted); }
+  .error { color: var(--pink-dark); text-align: center; min-height: 1.5em; margin-top: 8px; }
+
+  button {
+    font: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 20px;
+    background: var(--pink);
+    color: #fff;
+    box-shadow: 0 4px 0 var(--pink-dark);
+    transition: transform 0.08s;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--pink-dark); }
+  .big { font-size: 1.2rem; padding: 14px 32px; }
+  .soft {
+    background: #fff;
+    color: var(--ink);
+    border: 3px solid var(--line);
+    box-shadow: none;
+  }
+  .soft.selected { border-color: var(--pink); background: #fff0f5; }
+
+  input[type=text], input[type=number] {
+    font: inherit;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 2px solid var(--line);
+    width: 100%;
+  }
+  label { display: block; margin: 12px 0 4px; color: var(--muted); }
+
+  /* หน้าเริ่มเกม */
+  .resume { background: #eef4ff; border-radius: 14px; padding: 14px 16px; margin-bottom: 20px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .goals { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin: 12px 0; }
+  .goal { text-align: center; padding: 14px; }
+  .goal .emoji { font-size: 2.6rem; display: block; }
+  .goal .price { color: var(--muted); font-size: 0.9rem; }
+  .custom { background: var(--bg); border-radius: 14px; padding: 4px 16px 16px; margin-bottom: 12px; }
+  .emojis { display: flex; flex-wrap: wrap; gap: 6px; }
+  .emojis button { font-size: 1.6rem; padding: 4px 10px; }
+  .pills { display: flex; gap: 10px; flex-wrap: wrap; margin: 8px 0 16px; }
+  .plan { background: #eefaf2; border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; }
+
+  /* กระปุก */
+  .stats { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; color: var(--muted); }
+  .piggy { text-align: center; padding: 4px 0; }
+  .piggy .pig { font-size: 4.5rem; display: inline-block; }
+  .piggy .pig.bounce { animation: bounce 0.5s; }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0) scale(1); }
+    40% { transform: translateY(-16px) scale(1.1); }
+  }
+  .piggy .money { font-size: 2.2rem; font-weight: bold; }
+  .progress { background: var(--line); border-radius: 99px; height: 22px; overflow: hidden; margin: 6px 0; }
+  .progress > div { background: linear-gradient(90deg, var(--pink), var(--gold)); height: 100%; width: 0; transition: width 0.6s; }
+  .tips { margin-top: 10px; display: grid; gap: 6px; font-size: 0.95rem; }
+  .tips div { background: var(--bg); border-radius: 10px; padding: 8px 12px; }
+
+  /* รายได้ */
+  .message { background: #fffbe6; border-radius: 14px; padding: 12px 16px; margin-bottom: 16px; scroll-margin-top: 16px; }
+  .inc-row { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+  .inc-row b { color: var(--green); white-space: nowrap; }
+  .job { background: #eef4ff; border-radius: 14px; padding: 12px 16px; margin-top: 12px; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .job button { background: var(--blue); box-shadow: 0 4px 0 #3f6fcf; }
+  .total { text-align: right; margin-top: 12px; font-size: 1.1rem; }
+  .total b { font-size: 1.4rem; }
+
+  /* แบ่งเงิน */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: center; margin-bottom: 8px; }
+  .split div { border-radius: 14px; padding: 10px; }
+  .split .save { background: #fff0f5; }
+  .split .spend { background: #eef4ff; }
+  .split b { display: block; font-size: 1.5rem; }
+  input[type=range] { width: 100%; accent-color: var(--pink); height: 32px; }
+  .quick { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 4px 0 8px; }
+  .quick button { padding: 6px 12px; font-size: 0.9rem; }
+  .discipline { text-align: center; font-size: 0.95rem; margin: 8px 0; }
+  .cats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; }
+  .cats button { padding: 8px; font-size: 0.95rem; }
+  .cats .emoji { font-size: 1.6rem; display: block; }
+
+  /* เหรียญรางวัล */
+  .badges { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .badge { border-radius: 14px; padding: 10px; text-align: center; background: #fff7d6; }
+  .badge.locked { background: #f3f0ea; filter: grayscale(1); opacity: 0.55; }
+  .badge .emoji { font-size: 2rem; display: block; }
+  .badge small { color: var(--muted); display: block; line-height: 1.3; }
+
+  /* ภาพรวม */
+  .row { display: grid; grid-template-columns: 9.5em 1fr 4.5em; gap: 8px; align-items: center; margin: 6px 0; font-size: 0.95rem; }
+  .track { background: var(--bg); border-radius: 99px; height: 14px; overflow: hidden; }
+  .track div { height: 100%; border-radius: 99px; }
+  .amt { text-align: right; }
+
+  /* กราฟ */
+  .chart { position: relative; height: 200px; display: flex; align-items: flex-end; gap: 4px; border-bottom: 2px solid var(--line); margin-top: 24px; }
+  .bar { flex: 1; display: flex; flex-direction: column-reverse; height: 100%; }
+  .bar .p { background: var(--pink); transition: height 0.5s; }
+  .bar .i { background: var(--gold); border-radius: 4px 4px 0 0; transition: height 0.5s; }
+  .goal-line { position: absolute; left: 0; right: 0; border-top: 2px dashed var(--green); }
+  .goal-line span { position: absolute; right: 0; top: -1.6em; font-size: 0.8rem; color: var(--green); background: var(--card); padding: 0 4px; }
+  .labels { display: flex; gap: 4px; font-size: 0.7rem; color: var(--muted); }
+  .labels span { flex: 1; text-align: center; }
+  .legend { display: flex; gap: 16px; font-size: 0.85rem; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+
+  /* หน้าสรุปผล */
+  .result-emoji { font-size: 5rem; }
+  .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 16px 0; }
+  .summary div { background: var(--bg); border-radius: 14px; padding: 12px; text-align: center; }
+  .summary b { display: block; font-size: 1.3rem; }
+  .lesson { background: #eefaf2; border-radius: 14px; padding: 14px 16px; text-align: left; }
+  #end .overview-box { text-align: left; }
+
+  @media (max-width: 480px) {
+    .row { grid-template-columns: 7.5em 1fr 3.8em; font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" style="color:var(--muted);text-decoration:none">← กลับไปสมุดเงินของฉัน</a>
+  <h1>🐷 กระปุกออมสินวิเศษ</h1>
+  <p class="sub">ตั้งเป้าหมาย หารายได้ แบ่งเงินออม แล้วดูกระปุกวิเศษเสกดอกเบี้ยให้</p>
+
+  <!-- ===== หน้าเริ่มเกม ===== -->
+  <section id="start" class="card">
+    <div id="resumeBox" class="resume hidden">
+      <div>มีเกมที่เล่นค้างไว้<br><b id="resumeText"></b></div>
+      <button id="resumeBtn">เล่นต่อ ➜</button>
+    </div>
+
+    <h2>1. ชื่อของผู้เล่น</h2>
+    <input id="nameInput" type="text" placeholder="พิมพ์ชื่อเล่นตรงนี้" maxlength="20">
+    <label for="allowanceInput">ได้ค่าขนมเดือนละกี่บาท?</label>
+    <input id="allowanceInput" type="number" min="10" step="10" inputmode="numeric" value="200">
+
+    <h2 style="margin-top:20px">2. อยากเก็บเงินซื้ออะไร?</h2>
+    <div id="goalList" class="goals"></div>
+    <div id="customGoal" class="custom hidden">
+      <label>เลือกรูป</label>
+      <div id="emojiList" class="emojis"></div>
+      <label for="customName">ชื่อของที่อยากได้</label>
+      <input id="customName" type="text" maxlength="30" placeholder="เช่น หูฟัง, รองเท้าฟุตบอล">
+      <label for="customPrice">ราคา (บาท)</label>
+      <input id="customPrice" type="number" min="50" step="10" inputmode="numeric" placeholder="เช่น 1500">
+    </div>
+
+    <h2 style="margin-top:20px">3. จะเก็บให้ได้ภายในกี่เดือน?</h2>
+    <div id="monthList" class="pills"></div>
+
+    <div id="planHint" class="plan hidden"></div>
+    <div class="center"><button id="startBtn" class="big">เริ่มเล่น!</button></div>
+    <div id="startError" class="error"></div>
+  </section>
+
+  <!-- ===== หน้าเล่นเกม ===== -->
+  <section id="play" class="hidden">
+    <div class="card">
+      <div class="stats">
+        <span id="who"></span>
+        <span id="monthLabel"></span>
+      </div>
+      <div class="piggy">
+        <div id="pig" class="pig">🐷</div>
+        <div class="money"><span id="balance">0</span> บาท</div>
+        <div class="muted" style="font-size:0.9rem">กระปุกให้ดอกเบี้ยเดือนละ <span id="rateLabel"></span>% ของเงินที่อยู่ในกระปุก</div>
+      </div>
+      <div id="goalLabel"></div>
+      <div class="progress"><div id="progressBar"></div></div>
+      <div class="tips">
+        <div id="planLine"></div>
+        <div id="streakLine"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="message" class="message"></div>
+      <h2>💰 รายได้เดือนนี้</h2>
+      <div id="incomeList"></div>
+      <div id="jobBox" class="job"></div>
+      <div class="total">รวมเดือนนี้ <b id="incomeTotal"></b> บาท</div>
+    </div>
+
+    <div class="card">
+      <h2>🐷 แบ่งเงินเดือนนี้</h2>
+      <div class="split">
+        <div class="save">เก็บเข้ากระปุก<b id="saveAmt"></b></div>
+        <div class="spend">เอาไปใช้<b id="spendAmt"></b></div>
+      </div>
+      <input id="saveRange" type="range" min="0" step="10" aria-label="จำนวนเงินที่เก็บ">
+      <div id="quick" class="quick"></div>
+      <div id="discipline" class="discipline"></div>
+      <div id="catBox">
+        <h3>เงินที่เอาไปใช้ จะใช้กับอะไร?</h3>
+        <div id="catList" class="cats"></div>
+      </div>
+      <div class="center" style="margin-top:16px"><button id="nextBtn" class="big">จบเดือนนี้ ➜</button></div>
+    </div>
+
+    <div class="card">
+      <h2>🏅 เหรียญรางวัล</h2>
+      <div id="badges" class="badges"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 ภาพรวมเงินของฉัน</h2>
+      <div id="overview"></div>
+    </div>
+
+    <div class="card">
+      <h2>📈 เงินในกระปุกแต่ละเดือน</h2>
+      <div id="chart" class="chart"></div>
+      <div id="labels" class="labels"></div>
+      <div class="legend">
+        <span><i style="background:var(--pink)"></i>เงินที่เก็บเอง</span>
+        <span><i style="background:var(--gold)"></i>ดอกเบี้ยที่กระปุกเสกให้</span>
+        <span><i style="border-top:2px dashed var(--green);height:0;border-radius:0"></i>เป้าหมาย</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== หน้าสรุปผล ===== -->
+  <section id="end" class="card hidden center">
+    <div id="resultEmoji" class="result-emoji"></div>
+    <h2 id="resultTitle"></h2>
+    <p id="resultSub" class="muted"></p>
+    <div id="summary" class="summary"></div>
+    <h3>🏅 เหรียญที่ได้</h3>
+    <div id="endBadges" class="badges"></div>
+    <h3>📊 ภาพรวมทั้งเกม</h3>
+    <div id="endOverview" class="overview-box"></div>
+    <div id="lesson" class="lesson" style="margin-top:16px"></div>
+    <p><button id="againBtn" class="big">เล่นอีกครั้ง</button></p>
+  </section>
+</div>
+
+<script>
+  // ===================================================
+  //  ตั้งค่าเกม (แก้ตัวเลขตรงนี้ได้เลย)
+  // ===================================================
+  let ALLOWANCE = 200;        // ค่าขนมต่อเดือน (บาท) — ผู้เล่นตั้งเองได้ที่หน้าเริ่มเกม
+  const RATE = 0.05;          // ดอกเบี้ยต่อเดือน (0.05 = 5%) — สูงกว่าของจริงเพื่อให้เห็นผลชัดในเกม
+  const BONUS_CHANCE = 0.3;   // โอกาสได้รายได้พิเศษในแต่ละเดือน (0.3 = 30%)
+  const JOB_CHANCE = 0.7;     // โอกาสมีงานพิเศษให้ทำในแต่ละเดือน (0.7 = 70%)
+  const DISCIPLINE = 0.25;    // ต้องเก็บอย่างน้อยเท่านี้ของรายได้ ถึงนับเป็น "เดือนที่มีวินัย" (0.25 = 1 ใน 4)
+  const MONTH_OPTIONS = [6, 12, 24];
+
+  const GOALS = [
+    { emoji: "🧸", name: "ตุ๊กตาตัวโต", price: 800 },
+    { emoji: "🚲", name: "จักรยาน", price: 2000 },
+    { emoji: "📱", name: "แท็บเล็ต", price: 3000 },
+  ];
+  const CUSTOM_EMOJIS = ["🎁", "🎧", "⚽", "👟", "🎸", "📷", "🎨", "🛴", "🧩", "🐠", "✈️", "🎒", "💻", "📚"];
+
+  // รายได้พิเศษที่สุ่มเกิดขึ้นเอง
+  const BONUS_EVENTS = [
+    { emoji: "🧧", text: "ได้อั่งเปาจากญาติ", amount: 200 },
+    { emoji: "🎂", text: "วันเกิด! คุณยายให้เงินขวัญถุง", amount: 300 },
+    { emoji: "🏆", text: "ได้รางวัลเรียนดี", amount: 150 },
+    { emoji: "🌱", text: "ขายผักที่ปลูกเองได้", amount: 80 },
+    { emoji: "♻️", text: "ขายขวดพลาสติกที่เก็บสะสมไว้", amount: 40 },
+    { emoji: "🎨", text: "วาดรูปชนะการประกวด", amount: 100 },
+  ];
+
+  // งานพิเศษที่เลือกได้ว่าจะรับหรือไม่
+  const JOBS = [
+    { emoji: "🚗", text: "ช่วยล้างรถให้ที่บ้าน", pay: 50 },
+    { emoji: "🧹", text: "ช่วยทำความสะอาดบ้านทั้งวัน", pay: 40 },
+    { emoji: "🐶", text: "พาสุนัขข้างบ้านไปเดินเล่น", pay: 30 },
+    { emoji: "📖", text: "ช่วยสอนการบ้านน้อง", pay: 60 },
+    { emoji: "🍋", text: "ขายน้ำมะนาวหน้าบ้าน", pay: 80 },
+    { emoji: "🌿", text: "ช่วยรดน้ำต้นไม้ในสวน", pay: 30 },
+  ];
+
+  // หมวดการใช้จ่าย
+  const CATS = [
+    { id: "snack", emoji: "🍭", name: "ขนม" },
+    { id: "toy", emoji: "🧸", name: "ของเล่น" },
+    { id: "game", emoji: "🎮", name: "เกม" },
+    { id: "stuff", emoji: "📚", name: "ของใช้/หนังสือ" },
+    { id: "give", emoji: "🎁", name: "ให้คนอื่น" },
+  ];
+
+  // เหรียญรางวัล
+  const BADGES = [
+    { id: "first", emoji: "🌱", name: "ก้าวแรก", desc: "เก็บเงินเข้ากระปุกครั้งแรก", test: (s) => s.principal > 0 },
+    { id: "streak3", emoji: "🔥", name: "วินัยเหล็ก", desc: "ออมต่อเนื่อง 3 เดือน", test: (s) => s.bestStreak >= 3 },
+    { id: "streak6", emoji: "💎", name: "วินัยเพชร", desc: "ออมต่อเนื่อง 6 เดือน", test: (s) => s.bestStreak >= 6 },
+    { id: "worker", emoji: "💪", name: "ขยันทำงาน", desc: "ทำงานพิเศษครบ 3 ครั้ง", test: (s) => s.jobsDone >= 3 },
+    { id: "half", emoji: "🌗", name: "มาครึ่งทางแล้ว", desc: "เงินในกระปุกถึงครึ่งหนึ่งของเป้า", test: (s) => s.balance >= s.goal.price / 2 },
+    { id: "goal", emoji: "🏆", name: "ถึงเป้าหมาย", desc: "เก็บเงินได้ครบตามเป้า", test: (s) => s.balance >= s.goal.price },
+    { id: "giver", emoji: "💝", name: "ใจดี", desc: "แบ่งเงินให้คนอื่น", test: (s) => s.spent.give > 0 },
+  ];
+
+  const SAVE_KEY = "magic-piggy-save-v2";
+
+  // ===================================================
+  //  ตัวช่วย
+  // ===================================================
+  const $ = (id) => document.getElementById(id);
+  const fmt = (n) => Math.round(n).toLocaleString("th-TH");
+  const roundUp10 = (n) => Math.ceil(n / 10) * 10;
+  const pickRandom = (list) => list[Math.floor(Math.random() * list.length)];
+  const show = (id) => ["start", "play", "end"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+
+  // บันทึกเกมไว้ในเครื่อง เพื่อปิดแล้วกลับมาเล่นต่อได้
+  function persist() {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+  }
+  function loadSave() {
+    try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; }
+  }
+  function clearSave() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+  }
+
+  let state = null;
+  const pick = { goal: null, emoji: CUSTOM_EMOJIS[0], months: 12 };
+
+  // ===================================================
+  //  หน้าเริ่มเกม
+  // ===================================================
+  function addGoalCard(html, key) {
+    const b = document.createElement("button");
+    b.className = "soft goal";
+    b.dataset.key = key;
+    b.innerHTML = html;
+    b.onclick = () => {
+      pick.goal = key;
+      document.querySelectorAll(".goal").forEach((x) => x.classList.toggle("selected", x.dataset.key === String(key)));
+      $("customGoal").classList.toggle("hidden", key !== "custom");
+      if (key === "custom") $("customName").focus();
+      updatePlanHint();
+    };
+    $("goalList").appendChild(b);
+  }
+  GOALS.forEach((g, idx) =>
+    addGoalCard(`<span class="emoji">${g.emoji}</span>${g.name}<div class="price">${fmt(g.price)} บาท</div>`, idx)
+  );
+  addGoalCard(`<span class="emoji">✏️</span>ตั้งเป้าเอง<div class="price">พิมพ์ของที่อยากได้</div>`, "custom");
+
+  CUSTOM_EMOJIS.forEach((e) => {
+    const b = document.createElement("button");
+    b.className = "soft" + (e === pick.emoji ? " selected" : "");
+    b.textContent = e;
+    b.onclick = () => {
+      pick.emoji = e;
+      document.querySelectorAll("#emojiList button").forEach((x) => x.classList.toggle("selected", x === b));
+      updatePlanHint();
+    };
+    $("emojiList").appendChild(b);
+  });
+
+  MONTH_OPTIONS.forEach((m) => {
+    const b = document.createElement("button");
+    b.className = "soft" + (m === pick.months ? " selected" : "");
+    b.textContent = `${m} เดือน`;
+    b.onclick = () => {
+      pick.months = m;
+      document.querySelectorAll("#monthList button").forEach((x) => x.classList.toggle("selected", x === b));
+      updatePlanHint();
+    };
+    $("monthList").appendChild(b);
+  });
+
+  $("customName").oninput = updatePlanHint;
+  $("customPrice").oninput = updatePlanHint;
+
+  function readGoal() {
+    if (pick.goal === null) return null;
+    if (pick.goal === "custom") {
+      return { emoji: pick.emoji, name: $("customName").value.trim(), price: Math.round(Number($("customPrice").value)) };
+    }
+    return { ...GOALS[pick.goal] };
+  }
+  function goalError(g) {
+    if (!g) return "เลือกของที่อยากได้ก่อนนะ";
+    if (!g.name) return "พิมพ์ชื่อของที่อยากได้ด้วยนะ";
+    if (!(g.price >= 50)) return "ใส่ราคาอย่างน้อย 50 บาทนะ";
+    if (g.price > 1000000) return "ราคาสูงเกินไป ลองตั้งเป้าที่เล็กลงหน่อยนะ";
+    return "";
+  }
+
+  // ช่วยวางแผน: ต้องเก็บเดือนละเท่าไหร่ถึงจะถึงเป้า
+  function readAllowance() {
+    const v = Math.round(Number($("allowanceInput").value));
+    return v >= 10 ? v : 0;
+  }
+  $("allowanceInput").oninput = updatePlanHint;
+
+  function updatePlanHint() {
+    ALLOWANCE = readAllowance() || 200;
+    const g = readGoal();
+    const box = $("planHint");
+    if (goalError(g)) { box.classList.add("hidden"); return; }
+    const per = roundUp10(g.price / pick.months);
+    box.classList.remove("hidden");
+    box.innerHTML =
+      `🎯 ถ้าอยากได้ ${g.emoji} ${g.name} ภายใน ${pick.months} เดือน ต้องเก็บเดือนละประมาณ <b>${fmt(per)} บาท</b>` +
+      (per > ALLOWANCE
+        ? `<br>มากกว่าค่าขนมเดือนละ ${fmt(ALLOWANCE)} บาท ต้องรับงานพิเศษช่วยด้วยนะ! 💪`
+        : `<br>ค่าขนมเดือนละ ${fmt(ALLOWANCE)} บาท ทำได้แน่นอน!`);
+  }
+
+  $("startBtn").onclick = () => {
+    const g = readGoal();
+    const err = goalError(g) || (readAllowance() ? "" : "ใส่ค่าขนมต่อเดือนอย่างน้อย 10 บาทนะ");
+    $("startError").textContent = err;
+    if (err) return;
+    ALLOWANCE = readAllowance();
+    state = {
+      allowance: ALLOWANCE,
+      name: $("nameInput").value.trim() || "หนูน้อย",
+      goal: g,
+      months: pick.months,
+      month: 0,
+      balance: 0,
+      principal: 0,
+      interest: 0,
+      income: { allowance: 0, job: 0, bonus: 0 },
+      spent: Object.fromEntries(CATS.map((c) => [c.id, 0])),
+      history: [],
+      streak: 0,
+      bestStreak: 0,
+      jobsDone: 0,
+      badges: [],
+      reachedAt: null,
+      lastMsg: `เดือนแรกมาถึงแล้ว! ดูรายได้ของเดือนนี้ แล้วแบ่งเงินเก็บเข้ากระปุกกันเลย`,
+      current: null,
+    };
+    startMonth();
+    persist();
+    show("play");
+    renderPlay();
+    window.scrollTo(0, 0);
+  };
+
+  function renderResume() {
+    const saved = loadSave();
+    if (saved && saved.month < saved.months && saved.current) {
+      $("resumeText").textContent = `${saved.name} — ${saved.goal.emoji} ${saved.goal.name} (เดือนที่ ${saved.month + 1} จาก ${saved.months})`;
+      $("resumeBox").classList.remove("hidden");
+      $("resumeBtn").onclick = () => {
+        state = saved;
+        ALLOWANCE = saved.allowance || 200;
+        show("play");
+        renderPlay();
+        window.scrollTo(0, 0);
+      };
+    } else {
+      $("resumeBox").classList.add("hidden");
+    }
+  }
+
+  // ===================================================
+  //  แต่ละเดือน
+  // ===================================================
+  function startMonth() {
+    state.current = {
+      bonus: Math.random() < BONUS_CHANCE ? pickRandom(BONUS_EVENTS) : null,
+      job: Math.random() < JOB_CHANCE ? pickRandom(JOBS) : null,
+      jobTaken: false,
+      save: null,
+      cat: "snack",
+    };
+  }
+
+  function monthIncome() {
+    const c = state.current;
+    return ALLOWANCE + (c.bonus ? c.bonus.amount : 0) + (c.job && c.jobTaken ? c.job.pay : 0);
+  }
+
+  // จำนวนเงินที่ควรเก็บต่อเดือนเพื่อให้ถึงเป้าทันเวลา
+  function neededPerMonth() {
+    const remain = state.goal.price - state.balance;
+    const monthsLeft = state.months - state.month;
+    if (remain <= 0 || monthsLeft <= 0) return 0;
+    return roundUp10(remain / monthsLeft);
+  }
+
+  function renderPlay() {
+    const g = state.goal;
+    $("who").textContent = `กระปุกของ ${state.name}`;
+    $("monthLabel").textContent = `เดือนที่ ${state.month + 1} จาก ${state.months}`;
+    $("balance").textContent = fmt(state.balance);
+    $("rateLabel").textContent = RATE * 100;
+    $("goalLabel").textContent = `เป้าหมาย: ${g.emoji} ${g.name} ${fmt(g.price)} บาท`;
+    $("progressBar").style.width = Math.min(100, (state.balance / g.price) * 100) + "%";
+
+    const need = neededPerMonth();
+    $("planLine").innerHTML = need > 0
+      ? `🎯 ขาดอีก <b>${fmt(g.price - state.balance)} บาท</b> ต้องเก็บอีกเดือนละประมาณ <b>${fmt(need)} บาท</b> ถึงจะทันเวลา`
+      : `🎉 ถึงเป้าหมายแล้ว! เก็บต่อไปเรื่อยๆ ดอกเบี้ยจะงอกเงยขึ้นอีก`;
+    $("streakLine").innerHTML = state.streak > 0
+      ? `🔥 ออมต่อเนื่องมาแล้ว <b>${state.streak} เดือน</b> (สถิติดีที่สุด ${state.bestStreak} เดือน)`
+      : `🔥 ยังไม่มีสถิติออมต่อเนื่อง เดือนนี้เริ่มเลย!`;
+
+    $("message").textContent = state.lastMsg;
+    renderIncome();
+    renderSplit();
+    $("badges").innerHTML = badgesHTML(false);
+    $("overview").innerHTML = overviewHTML();
+    drawChart();
+  }
+
+  function renderIncome() {
+    const c = state.current;
+    let h = `<div class="inc-row"><span>🪙 ค่าขนมประจำเดือน</span><b>+${fmt(ALLOWANCE)}</b></div>`;
+    if (c.bonus) h += `<div class="inc-row"><span>${c.bonus.emoji} ${c.bonus.text}</span><b>+${fmt(c.bonus.amount)}</b></div>`;
+    if (c.job && c.jobTaken) h += `<div class="inc-row"><span>${c.job.emoji} ทำงานพิเศษ: ${c.job.text}</span><b>+${fmt(c.job.pay)}</b></div>`;
+    $("incomeList").innerHTML = h;
+
+    const box = $("jobBox");
+    if (c.job && !c.jobTaken) {
+      box.classList.remove("hidden");
+      box.innerHTML = `<div>มีงานพิเศษให้ทำ: ${c.job.emoji} <b>${c.job.text}</b><br>ได้ค่าจ้าง ${fmt(c.job.pay)} บาท</div><button id="takeJob">รับงานนี้ 💪</button>`;
+      $("takeJob").onclick = () => {
+        c.jobTaken = true;
+        persist();
+        renderIncome();
+        renderSplit();
+      };
+    } else if (!c.job) {
+      box.classList.remove("hidden");
+      box.innerHTML = `<span class="muted">เดือนนี้ไม่มีงานพิเศษให้ทำ</span>`;
+    } else {
+      box.classList.add("hidden");
+    }
+    $("incomeTotal").textContent = fmt(monthIncome());
+  }
+
+  function renderSplit() {
+    const c = state.current;
+    const inc = monthIncome();
+    if (c.save === null) {
+      const need = neededPerMonth();
+      c.save = need > 0 ? Math.min(need, inc) : Math.round(inc / 2 / 10) * 10;
+    }
+    c.save = Math.max(0, Math.min(c.save, inc));
+    const spend = inc - c.save;
+
+    const r = $("saveRange");
+    r.max = inc;
+    r.value = c.save;
+    $("saveAmt").textContent = fmt(c.save) + " บาท";
+    $("spendAmt").textContent = fmt(spend) + " บาท";
+
+    const minSave = roundUp10(inc * DISCIPLINE);
+    $("discipline").innerHTML = c.save > 0 && c.save >= inc * DISCIPLINE
+      ? `✅ เดือนนี้นับเป็น <b>เดือนที่มีวินัย</b> สถิติออมต่อเนื่องจะเพิ่มขึ้น`
+      : `เก็บอย่างน้อย <b>${fmt(minSave)} บาท</b> เพื่อนับเป็นเดือนที่มีวินัย 🔥`;
+
+    $("catBox").classList.toggle("hidden", spend === 0);
+    document.querySelectorAll("#catList button").forEach((b) => b.classList.toggle("selected", b.dataset.cat === c.cat));
+  }
+
+  $("saveRange").oninput = (e) => {
+    state.current.save = Number(e.target.value);
+    renderSplit();
+    persist();
+  };
+
+  [0, 25, 50, 75, 100].forEach((p) => {
+    const b = document.createElement("button");
+    b.className = "soft";
+    b.textContent = p === 100 ? "เก็บหมด" : `เก็บ ${p}%`;
+    b.onclick = () => {
+      state.current.save = Math.round((monthIncome() * p) / 100 / 10) * 10;
+      renderSplit();
+      persist();
+    };
+    $("quick").appendChild(b);
+  });
+
+  CATS.forEach((cat) => {
+    const b = document.createElement("button");
+    b.className = "soft";
+    b.dataset.cat = cat.id;
+    b.innerHTML = `<span class="emoji">${cat.emoji}</span>${cat.name}`;
+    b.onclick = () => {
+      state.current.cat = cat.id;
+      renderSplit();
+      persist();
+    };
+    $("catList").appendChild(b);
+  });
+
+  // ===================================================
+  //  หัวใจของเกม: จบเดือน
+  // ===================================================
+  $("nextBtn").onclick = () => {
+    const c = state.current;
+    const inc = monthIncome();
+    const save = c.save;
+    const spend = inc - save;
+    const cat = CATS.find((x) => x.id === c.cat);
+
+    // 1) บันทึกรายได้แยกตามที่มา
+    state.income.allowance += ALLOWANCE;
+    if (c.bonus) state.income.bonus += c.bonus.amount;
+    if (c.job && c.jobTaken) { state.income.job += c.job.pay; state.jobsDone++; }
+
+    // 2) เงินเก็บเข้ากระปุก / เงินใช้จ่ายแยกตามหมวด
+    state.balance += save;
+    state.principal += save;
+    if (spend > 0) state.spent[c.cat] += spend;
+
+    // 3) กระปุกเสกดอกเบี้ยจากเงินทั้งหมดในกระปุก (ดอกเบี้ยทบต้น)
+    const earned = Math.round(state.balance * RATE);
+    state.balance += earned;
+    state.interest += earned;
+
+    // 4) วินัยการออม
+    if (save > 0 && save >= inc * DISCIPLINE) state.streak++;
+    else state.streak = 0;
+    state.bestStreak = Math.max(state.bestStreak, state.streak);
+
+    state.month++;
+    state.history.push({ principal: state.principal, interest: state.interest });
+    if (!state.reachedAt && state.balance >= state.goal.price) state.reachedAt = state.month;
+
+    // 5) ตรวจเหรียญรางวัลใหม่
+    const newBadges = BADGES.filter((b) => !state.badges.includes(b.id) && b.test(state));
+    newBadges.forEach((b) => state.badges.push(b.id));
+
+    let msg = `เดือนที่ ${state.month}: ได้เงิน ${fmt(inc)} บาท เก็บ ${fmt(save)} บาท`;
+    msg += spend > 0 ? ` ใช้กับ${cat.name} ${fmt(spend)} บาท ${cat.emoji}` : ` ไม่ใช้เลยสักบาท`;
+    if (earned > 0) msg += ` — กระปุกเสกดอกเบี้ยให้ +${fmt(earned)} บาท ✨`;
+    if (newBadges.length) msg += ` 🏅 ได้เหรียญใหม่: ${newBadges.map((b) => b.emoji + " " + b.name).join(", ")}`;
+    state.lastMsg = msg;
+
+    if (state.month >= state.months) {
+      clearSave();
+      endGame();
+      window.scrollTo(0, 0);
+      return;
+    }
+
+    startMonth();
+    persist();
+    renderPlay();
+    const pig = $("pig");
+    pig.classList.remove("bounce");
+    void pig.offsetWidth;
+    pig.classList.add("bounce");
+    $("message").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  // ===================================================
+  //  ส่วนแสดงผล: เหรียญ, ภาพรวม, กราฟ
+  // ===================================================
+  function badgesHTML(earnedOnly) {
+    const list = earnedOnly ? BADGES.filter((b) => state.badges.includes(b.id)) : BADGES;
+    if (!list.length) return `<p class="muted">ยังไม่ได้เหรียญ ลองเล่นใหม่อีกครั้งนะ</p>`;
+    return list
+      .map((b) => {
+        const got = state.badges.includes(b.id);
+        return `<div class="badge${got ? "" : " locked"}"><span class="emoji">${b.emoji}</span><b>${b.name}</b><small>${b.desc}</small></div>`;
+      })
+      .join("");
+  }
+
+  function overviewHTML() {
+    const inc = state.income;
+    const total = inc.allowance + inc.job + inc.bonus;
+    if (!total) return `<p class="muted">ยังไม่มีข้อมูล จบเดือนแรกก่อนแล้วภาพรวมจะขึ้นตรงนี้</p>`;
+    const row = (emoji, label, val, color) =>
+      `<div class="row"><span>${emoji} ${label}</span><div class="track"><div style="width:${(val / total) * 100}%;background:${color}"></div></div><span class="amt">${fmt(val)}</span></div>`;
+
+    let h = `<h3>เงินเข้ามาจากไหน <span class="muted">(รวม ${fmt(total)} บาท)</span></h3>`;
+    h += row("🪙", "ค่าขนม", inc.allowance, "var(--pink)");
+    h += row("💪", "งานพิเศษ", inc.job, "var(--green)");
+    h += row("🎉", "รายได้พิเศษ", inc.bonus, "var(--gold)");
+
+    h += `<h3>เงินไปไหน</h3>`;
+    h += row("🐷", "เก็บเข้ากระปุก", state.principal, "var(--pink)");
+    CATS.forEach((c) => (h += row(c.emoji, c.name, state.spent[c.id], "var(--blue)")));
+
+    const pct = Math.round((state.principal / total) * 100);
+    h += `<p style="margin-bottom:0">เก็บได้ <b>${pct}%</b> ของเงินทั้งหมดที่ได้มา` +
+      (pct >= 50 ? ` เยี่ยมมาก! 🌟` : pct >= 25 ? ` ดีมาก ลองเก็บให้ได้ครึ่งหนึ่งดูไหม?` : ` ลองเก็บให้มากขึ้นอีกนิดนะ`) + `</p>`;
+    return h;
+  }
+
+  function drawChart() {
+    const g = state.goal;
+    const top = Math.max(g.price, state.balance) * 1.15;
+    let html = "";
+    for (let m = 0; m < state.months; m++) {
+      const h = state.history[m];
+      const p = h ? (h.principal / top) * 100 : 0;
+      const i = h ? (h.interest / top) * 100 : 0;
+      html += `<div class="bar"><div class="p" style="height:${p}%"></div><div class="i" style="height:${i}%"></div></div>`;
+    }
+    html += `<div class="goal-line" style="bottom:${(g.price / top) * 100}%"><span>${g.emoji} ${fmt(g.price)}</span></div>`;
+    $("chart").innerHTML = html;
+    $("labels").innerHTML = Array.from({ length: state.months }, (_, m) => `<span>${m + 1}</span>`).join("");
+  }
+
+  // ===================================================
+  //  จบเกม
+  // ===================================================
+  function endGame() {
+    const g = state.goal;
+    const reached = state.balance >= g.price;
+    const inc = state.income;
+    const totalIncome = inc.allowance + inc.job + inc.bonus;
+    const totalSpent = totalIncome - state.principal;
+
+    $("resultEmoji").textContent = reached ? g.emoji + "🎉" : "🐷💭";
+    $("resultTitle").textContent = reached
+      ? `เย้! ${state.name} เก็บเงินซื้อ${g.name}ได้แล้ว!`
+      : `อีกนิดเดียว! ${state.name} ขาดอีก ${fmt(g.price - state.balance)} บาท จะได้${g.name}`;
+    $("resultSub").textContent = reached
+      ? `ถึงเป้าหมายตั้งแต่เดือนที่ ${state.reachedAt} จาก ${state.months} เดือน · ออมต่อเนื่องนานที่สุด ${state.bestStreak} เดือน`
+      : `ออมต่อเนื่องนานที่สุด ${state.bestStreak} เดือน · ลองเก็บเพิ่มหรือรับงานพิเศษมากขึ้นในรอบหน้านะ`;
+
+    const card = (label, val) => `<div>${label}<b>${fmt(val)} บาท</b></div>`;
+    $("summary").innerHTML =
+      card("💰 รายได้ทั้งหมด", totalIncome) +
+      card("🐷 เก็บเอง", state.principal) +
+      card("✨ ดอกเบี้ย", state.interest) +
+      card("🛍️ ใช้ไป", totalSpent) +
+      card("🏦 รวมในกระปุก", state.balance);
+
+    $("endBadges").innerHTML = badgesHTML(true);
+    $("endOverview").innerHTML = overviewHTML();
+
+    // ถ้าเก็บค่าขนมหมดทุกเดือน จะได้เท่าไหร่ (เทียบให้เห็นพลังดอกเบี้ยทบต้น)
+    let best = 0;
+    for (let m = 0; m < state.months; m++) { best += ALLOWANCE; best += Math.round(best * RATE); }
+
+    $("lesson").innerHTML =
+      `💡 <b>รู้ไหม?</b><br>` +
+      `• ดอกเบี้ย ${fmt(state.interest)} บาท เราไม่ต้องทำอะไรเลย กระปุกเสกให้เอง ยิ่งเก็บเร็ว ดอกเบี้ยยิ่งออกดอกออกผลต่อ (เรียกว่า "ดอกเบี้ยทบต้น")<br>` +
+      `• ถ้าเก็บค่าขนมหมดทุกเดือนตลอด ${state.months} เดือน กระปุกจะมี <b>${fmt(best)} บาท</b> ทั้งที่เก็บเองแค่ ${fmt(ALLOWANCE * state.months)} บาท<br>` +
+      `• งานพิเศษช่วยให้มีรายได้เพิ่ม ${fmt(inc.job)} บาท การขยันหาเงินเพิ่มก็ช่วยให้ถึงเป้าเร็วขึ้น`;
+    show("end");
+  }
+
+  $("againBtn").onclick = () => {
+    renderResume();
+    show("start");
+    window.scrollTo(0, 0);
+  };
+
+  // เปิดหน้าเว็บครั้งแรก
+  renderResume();
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>

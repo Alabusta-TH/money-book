@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สมุดเงินของลูก</title>
+<style>
+  :root { --bg: #fff8ec; --card: #fff; --ink: #3b2f2f; --muted: #8a7a6a; --line: #f0e2cc; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Thonburi", "Leelawadee UI", Tahoma, sans-serif; font-size: 18px; line-height: 1.5;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 32px 20px; }
+  h1 { text-align: center; margin: 0 0 4px; }
+  .sub { text-align: center; color: var(--muted); margin: 0 0 28px; }
+  .kids { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .kid {
+    display: block; text-decoration: none; color: var(--ink); background: var(--card);
+    border-radius: 24px; padding: 28px 20px; text-align: center; border-top: 10px solid;
+    box-shadow: 0 5px 0 var(--line); transition: transform 0.1s;
+  }
+  .kid:active { transform: translateY(3px); }
+  .kid .av { font-size: 5rem; line-height: 1.1; }
+  .kid b { display: block; font-size: 1.6rem; margin: 6px 0 2px; }
+  .kid span { color: var(--muted); }
+  .note { background: var(--card); border-radius: 18px; padding: 16px 20px; margin-top: 24px; box-shadow: 0 4px 0 var(--line); }
+  .note h2 { margin: 0 0 6px; font-size: 1.1rem; }
+  .note ul { margin: 0; padding-left: 1.3em; }
+  a.game { color: inherit; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐷 สมุดเงินของลูก</h1>
+  <p class="sub">แต่ละคนมีแอปของตัวเอง มีรหัสผ่านแยกกัน</p>
+  <div class="kids">
+    <a class="kid" href="kaopun.html" style="border-top-color:#f08a24">
+      <div class="av">🐻</div><b>Kaopun</b><span>เปิดสมุดเงินของ Kaopun ›</span>
+    </a>
+    <a class="kid" href="nampun.html" style="border-top-color:#2f8fd8">
+      <div class="av">🐬</div><b>Nampun</b><span>เปิดสมุดเงินของ Nampun ›</span>
+    </a>
+  </div>
+  <div class="note">
+    <h2>สำหรับพ่อแม่</h2>
+    <ul>
+      <li>บน iPad ให้เปิดแอปของแต่ละคนใน Safari แล้วกด แชร์ ➜ "เพิ่มไปยังหน้าจอโฮม" จะได้ไอคอนแยกของใครของมัน</li>
+      <li>ครั้งแรกที่เปิด ลูกจะตั้งรหัส 4 หลักเอง และพ่อแม่ตั้งรหัสผู้ปกครอง 6 หลัก ไว้ใช้ตอนลูกลืมรหัส</li>
+      <li>ข้อมูลเก็บไว้ในเครื่องเท่านั้น ควรกดดาวน์โหลดไฟล์สำรองในหน้าตั้งค่าเดือนละครั้ง</li>
+      <li><a class="game" href="game.html">🎮 เกมฝึกออมเงิน</a> เล่นได้ทั้งสองคน</li>
+    </ul>
+  </div>
+</div>
+<script>
+  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>

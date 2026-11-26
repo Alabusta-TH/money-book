@@ -1,0 +1,21 @@
+{
+    "name":  "Kaopun",
+    "short_name":  "Kaopun",
+    "start_url":  "./kaopun.html",
+    "scope":  "./",
+    "display":  "standalone",
+    "background_color":  "#fff8ec",
+    "theme_color":  "#f08a24",
+    "icons":  [
+                  {
+                      "type":  "image/png",
+                      "sizes":  "192x192",
+                      "src":  "icons/kaopun-192.png"
+                  },
+                  {
+                      "type":  "image/png",
+                      "sizes":  "512x512",
+                      "src":  "icons/kaopun-512.png"
+                  }
+              ]
+}

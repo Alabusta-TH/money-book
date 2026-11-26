@@ -1,0 +1,1369 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kaopun">
+<meta name="theme-color" content="#fff8ec">
+<link rel="manifest" href="manifest-kaopun.json">
+<link rel="apple-touch-icon" href="icons/kaopun-180.png">
+<title>Kaopun · สมุดเงินของฉัน</title>
+<!--
+  ไฟล์ต้นแบบของแอปสมุดเงิน
+  อย่าเปิดไฟล์นี้ใช้งานจริง ให้แก้ไฟล์นี้แล้วรัน build.ps1 เพื่อสร้าง kaopun.html และ nampun.html ใหม่
+-->
+<style>
+  :root {
+    --bg: #fff8ec; --card: #ffffff; --soft: #fdf3e3; --ink: #3b2f2f; --muted: #8a7a6a; --line: #f0e2cc;
+    --accent: #f08a24; --accent-dark: #c46a10; --accent-soft: #fff1e3;
+    --gold: #f5b700; --green: #2e9e5b; --red: #e5484d; --blue: #5b8def;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, "Thonburi", "Leelawadee UI", Tahoma, sans-serif;
+    font-size: 18px; line-height: 1.5;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+  .hidden { display: none !important; }
+  .muted { color: var(--muted); }
+  .small { font-size: 0.85rem; }
+  .pos { color: var(--green); }
+  .neg { color: var(--red); }
+
+  /* ส่วนหัว */
+  .top {
+    position: sticky; top: 0; z-index: 5; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: calc(10px + env(safe-area-inset-top)) 20px 10px; border-bottom: 1px solid var(--line);
+  }
+  .brand { font-weight: bold; font-size: 1.2rem; }
+
+  main { max-width: 1000px; margin: 0 auto; padding: 20px; }
+  .card { background: var(--card); border-radius: 20px; padding: 20px; box-shadow: 0 4px 0 var(--line); margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 1.8rem; }
+  h2 { margin: 0 0 10px; font-size: 1.25rem; }
+  h3 { margin: 16px 0 6px; font-size: 1.05rem; }
+
+  button {
+    font: inherit; cursor: pointer; border: none; border-radius: 14px; padding: 12px 18px; min-height: 48px;
+    background: var(--accent); color: #fff; box-shadow: 0 4px 0 var(--accent-dark); transition: transform 0.08s;
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--accent-dark); }
+  button.ghost { background: #fff; color: var(--ink); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+  button.link { background: none; box-shadow: none; color: var(--accent-dark); padding: 4px 8px; min-height: 0; }
+  button.small { padding: 6px 12px; min-height: 40px; font-size: 0.9rem; }
+  button.danger { background: var(--red); box-shadow: 0 4px 0 #b8363a; }
+  input {
+    font: inherit; font-size: max(16px, 1rem); padding: 12px 14px; border-radius: 12px;
+    border: 2px solid var(--line); width: 100%; background: #fff; color: var(--ink);
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  .big-input { font-size: 1.8rem; font-weight: bold; text-align: center; }
+  label { display: block; margin: 14px 0 6px; color: var(--muted); }
+
+  /* หน้าแรก */
+  .hello { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+  .avatar { font-size: 3.2rem; line-height: 1; }
+  .big-money { font-size: 2.6rem; font-weight: bold; }
+  .big-money small { font-size: 1.1rem; color: var(--muted); font-weight: normal; }
+  .split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .split2 > div { background: var(--soft); border-radius: 14px; padding: 12px; }
+  .split2 b { display: block; font-size: 1.35rem; }
+  .quick3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .qa { display: flex; flex-direction: column; align-items: center; font-size: 1.8rem; padding: 14px 8px; border-radius: 18px; }
+  .qa span { font-size: 1rem; }
+  .qa.green { background: var(--green); box-shadow: 0 4px 0 #227a45; }
+  .qa.red { background: var(--red); box-shadow: 0 4px 0 #b8363a; }
+  .qa.blue { background: var(--blue); box-shadow: 0 4px 0 #3f6fcf; }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .card-head h2 { margin: 0; }
+  .wallet-mini { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+  .wm { background: var(--soft); color: var(--ink); box-shadow: none; border-left: 6px solid; text-align: left; padding: 12px; display: block; width: 100%; }
+  .wm .e { font-size: 1.6rem; }
+  .wm b { display: block; font-size: 1.2rem; }
+  .bar { background: var(--line); border-radius: 99px; height: 12px; overflow: hidden; margin-top: 6px; }
+  .bar > div { height: 100%; border-radius: 99px; transition: width 0.4s; }
+  .stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stats3 > div { background: var(--soft); border-radius: 14px; padding: 12px; text-align: center; }
+  .stats3 b { display: block; font-size: 1.3rem; }
+  .game-card { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--ink); font-size: 2rem; }
+  .game-card > div { flex: 1; font-size: 1rem; }
+
+  /* รายการ */
+  .tx { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--line); }
+  .tx:last-child { border-bottom: none; }
+  .tx .ic { font-size: 1.6rem; width: 2.2rem; text-align: center; }
+  .tx .body { flex: 1; min-width: 0; }
+  .tx .t { font-weight: 600; }
+  .tx .s { color: var(--muted); font-size: 0.85rem; }
+  .tx .amt { font-weight: bold; white-space: nowrap; }
+  .tx .del { background: none; box-shadow: none; color: var(--muted); padding: 6px 10px; min-height: 44px; font-size: 1.1rem; }
+  .empty { color: var(--muted); text-align: center; padding: 16px; }
+  .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .month-nav h2 { margin: 0; text-align: center; flex: 1; }
+  .row { display: grid; grid-template-columns: 10em 1fr 5.5em; gap: 8px; align-items: center; margin: 6px 0; font-size: 0.95rem; }
+  .row .track { background: var(--soft); border-radius: 99px; height: 14px; overflow: hidden; }
+  .row .track div { height: 100%; border-radius: 99px; }
+  .row .v { text-align: right; }
+
+  /* 5 กระเป๋า */
+  .wallets { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .wallet { border-top: 8px solid; margin: 0; }
+  .w-head { display: flex; align-items: flex-start; gap: 12px; }
+  .w-head .w-emoji { font-size: 2.6rem; line-height: 1; }
+  .w-head > div { flex: 1; min-width: 0; }
+  .w-head h2 { margin: 0; }
+  .w-bal { font-size: 2rem; font-weight: bold; margin: 10px 0 4px; }
+  .w-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .w-actions button { padding: 8px; font-size: 0.95rem; }
+  .pct-bar { display: flex; height: 36px; border-radius: 12px; overflow: hidden; margin: 10px 0; background: var(--line); }
+  .pct-bar div { display: flex; align-items: center; justify-content: center; color: #fff; font-size: 0.85rem; white-space: nowrap; overflow: hidden; }
+  .warn { background: #fff4e5; border-radius: 12px; padding: 10px 14px; color: #9a5b00; margin-top: 8px; }
+  .note { background: var(--soft); border-radius: 12px; padding: 10px 14px; font-size: 0.95rem; margin-top: 10px; }
+
+  /* ลงทุน */
+  .holding { border-left: 6px solid var(--blue); }
+  .h-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+  .h-grid > div { background: var(--soft); border-radius: 12px; padding: 8px; text-align: center; font-size: 0.85rem; }
+  .h-grid b { display: block; font-size: 1.1rem; }
+  .tag { display: inline-block; border-radius: 99px; padding: 2px 10px; font-size: 0.8rem; color: #fff; vertical-align: middle; }
+  .h-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .h-actions button { flex: 1; padding: 8px; font-size: 0.9rem; min-width: 110px; }
+
+  /* แถบเมนูล่าง */
+  .nav {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: #fff; border-top: 1px solid var(--line);
+    display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom);
+  }
+  .nav button {
+    flex: 1; max-width: 200px; background: none; box-shadow: none; color: var(--muted); border-radius: 0;
+    display: flex; flex-direction: column; align-items: center; padding: 8px 4px; font-size: 0.8rem; min-height: 64px;
+  }
+  .nav button .i { font-size: 1.5rem; }
+  .nav button.active { color: var(--accent-dark); font-weight: bold; }
+
+  /* หน้าต่างกรอกข้อมูล */
+  .modal { position: fixed; inset: 0; z-index: 10; background: rgba(40, 30, 20, 0.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .sheet { background: #fff; border-radius: 24px; padding: 24px; width: 100%; max-width: 580px; max-height: 90vh; overflow: auto; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { background: #fff; color: var(--ink); border: 2px solid var(--line); box-shadow: none; padding: 8px 12px; min-height: 44px; font-size: 0.95rem; }
+  .chip.selected { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+  .chip small { display: block; color: var(--muted); font-size: 0.75rem; font-weight: normal; }
+  .chips.emoji .chip { font-size: 1.5rem; padding: 4px 10px; }
+  .actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .error { color: var(--red); min-height: 1.4em; margin-top: 10px; }
+  .split-row { display: grid; grid-template-columns: 1fr 8em; gap: 10px; align-items: center; margin: 6px 0; }
+  .split-row input { padding: 8px 10px; text-align: right; }
+  .left { text-align: right; font-weight: 600; margin-top: 6px; }
+
+  /* หน้าล็อก / ใส่รหัส */
+  .lock {
+    position: fixed; inset: 0; z-index: 30; background: var(--bg); overflow: auto;
+    display: flex;
+    padding: calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom));
+  }
+  .lock-box { width: 100%; max-width: 380px; text-align: center; margin: auto; }
+  .lock-av { font-size: 4.5rem; line-height: 1.1; }
+  .lock-box h2 { margin: 8px 0 4px; font-size: 1.4rem; }
+  .dots { display: flex; justify-content: center; gap: 14px; margin: 22px 0 8px; }
+  .dots span { width: 18px; height: 18px; border-radius: 50%; border: 3px solid var(--accent); }
+  .dots span.on { background: var(--accent); }
+  .dots.shake { animation: shake 0.4s; }
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+  .pin-msg { min-height: 1.6em; color: var(--red); margin-bottom: 8px; }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 300px; margin: 0 auto; }
+  .keypad button { font-size: 1.7rem; min-height: 72px; border-radius: 50%; aspect-ratio: 1; padding: 0; background: #fff; color: var(--ink); border: 2px solid var(--line); box-shadow: 0 3px 0 var(--line); }
+  .keypad button.fn { font-size: 1rem; border: none; box-shadow: none; background: none; color: var(--muted); }
+  .keypad span { display: block; }
+  .setup-box { max-width: 560px; text-align: center; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 12px 20px; border-radius: 14px; opacity: 0; pointer-events: none;
+    transition: all 0.25s; z-index: 40; max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .banner { background: #fff4e5; color: #9a5b00; text-align: center; padding: 8px 16px; font-size: 0.9rem; }
+  ol.steps { padding-left: 1.4em; margin: 6px 0; }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 7.5em 1fr 4.5em; font-size: 0.85rem; }
+    .stats3 b { font-size: 1.05rem; }
+    .brand { font-size: 1rem; }
+  }
+</style>
+</head>
+<body>
+<div id="banner" class="banner hidden"></div>
+<header class="top">
+  <div id="brand" class="brand"></div>
+  <button id="lockBtn" class="ghost small">🔒 ล็อก</button>
+</header>
+<main id="main"></main>
+<nav id="nav" class="nav"></nav>
+<div id="modal" class="modal hidden"><div id="sheet" class="sheet"></div></div>
+<div id="lock" class="lock hidden"></div>
+<div id="toast" class="toast"></div>
+<input id="importFile" type="file" accept=".json,application/json" class="hidden">
+
+<script>
+// =====================================================================
+//  แอปนี้เป็นของใคร (build.ps1 จะใส่ชื่อให้อัตโนมัติ)
+// =====================================================================
+const KIDS = {
+  kaopun: { name: "Kaopun", avatar: "🐻", accent: "#f08a24", accentDark: "#c46a10", accentSoft: "#fff1e3" },
+  nampun: { name: "Nampun", avatar: "🐬", accent: "#2f8fd8", accentDark: "#1f6fb0", accentSoft: "#e8f3fd" },
+};
+const KID_ID = KIDS["kaopun"] ? "kaopun" : "kaopun";
+const KID = KIDS[KID_ID];
+
+// =====================================================================
+//  ตั้งค่าพื้นฐาน
+// =====================================================================
+const KID_PIN_LENGTH = 4;            // รหัสของลูก 4 หลัก
+const PARENT_PIN_LENGTH = 6;         // รหัสผู้ปกครอง 6 หลัก
+const AUTO_LOCK_MS = 60 * 1000;      // ล็อกเองเมื่อออกจากแอปเกิน 1 นาที
+const MAX_TRIES = 5;                 // ใส่รหัสผิดได้กี่ครั้งก่อนต้องรอ
+const WAIT_SECONDS = 30;             // ต้องรอกี่วินาทีเมื่อใส่ผิดครบ
+
+const AVATARS = ["🐻", "🐬", "🐼", "🦊", "🐯", "🐰", "🐨", "🦁", "🐸", "🐵", "🦄", "🐱", "🐶", "🐳", "🦋", "🐥"];
+const WALLET_COLORS = ["#ff7aa2", "#f5b700", "#a77bf3", "#5b8def", "#2e9e5b"];
+const WALLET_EMOJIS = ["🍭", "🐷", "🎁", "📈", "💝", "🚲", "🎮", "📚", "✈️", "🎧", "⚽", "🎨", "🏦", "🌱", "🎸", "💻", "👟", "🧸"];
+
+// 5 กระเป๋าเริ่มต้น — ลูกแก้ชื่อ เป้าหมาย ยอดเงิน และ % ได้เองในแอป
+const DEFAULT_WALLETS = [
+  { emoji: "🍭", name: "ใช้จ่าย", goal: "ขนม ของใช้ประจำวัน", target: 0, pct: 40 },
+  { emoji: "🐷", name: "เงินออม", goal: "เก็บไว้ใช้ยามจำเป็น", target: 0, pct: 20 },
+  { emoji: "🎁", name: "ของที่อยากได้", goal: "", target: 0, pct: 20 },
+  { emoji: "📈", name: "ลงทุน", goal: "ให้เงินงอกเงย", target: 0, pct: 10 },
+  { emoji: "💝", name: "แบ่งปัน", goal: "ให้คนอื่น ทำบุญ", target: 0, pct: 10 },
+];
+
+const INCOME_CATS = [
+  { id: "allowance", emoji: "🪙", name: "ค่าขนม" },
+  { id: "job", emoji: "💪", name: "งานพิเศษ" },
+  { id: "gift", emoji: "🧧", name: "ของขวัญ/อั่งเปา" },
+  { id: "interest", emoji: "✨", name: "ดอกเบี้ย/ปันผล" },
+  { id: "sell", emoji: "🛍️", name: "ขายของ" },
+  { id: "start", emoji: "🐷", name: "เงินที่มีอยู่เดิม" },
+  { id: "other", emoji: "➕", name: "อื่นๆ" },
+];
+const EXPENSE_CATS = [
+  { id: "snack", emoji: "🍭", name: "ขนม/อาหาร" },
+  { id: "toy", emoji: "🧸", name: "ของเล่น" },
+  { id: "game", emoji: "🎮", name: "เกม" },
+  { id: "school", emoji: "📚", name: "ของใช้/การเรียน" },
+  { id: "travel", emoji: "🚌", name: "เดินทาง" },
+  { id: "give", emoji: "🎁", name: "ให้/ทำบุญ" },
+  { id: "goal", emoji: "🎯", name: "ซื้อของตามเป้าหมาย" },
+  { id: "other", emoji: "➕", name: "อื่นๆ" },
+];
+const INVEST_TYPES = [
+  { id: "savings", emoji: "🏦", name: "เงินฝากออมทรัพย์", risk: 1 },
+  { id: "fixed", emoji: "🔒", name: "เงินฝากประจำ", risk: 1 },
+  { id: "lottery", emoji: "🎫", name: "สลากออมสิน/ธ.ก.ส.", risk: 1 },
+  { id: "bond", emoji: "📜", name: "พันธบัตร", risk: 1 },
+  { id: "fund", emoji: "📊", name: "กองทุนรวม", risk: 2 },
+  { id: "gold", emoji: "🥇", name: "ทองคำ", risk: 2 },
+  { id: "stock", emoji: "📈", name: "หุ้น", risk: 3 },
+  { id: "other", emoji: "💼", name: "อื่นๆ", risk: 2 },
+];
+const RISK = {
+  1: { label: "เสี่ยงต่ำ", color: "#2e9e5b" },
+  2: { label: "เสี่ยงปานกลาง", color: "#d99a00" },
+  3: { label: "เสี่ยงสูง", color: "#e5484d" },
+};
+
+const STORAGE_KEY = `money-book-${KID_ID}`;
+
+// =====================================================================
+//  ตัวช่วยทั่วไป
+// =====================================================================
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const fmt = (n) => (Math.round(n * 100) / 100).toLocaleString("th-TH", { maximumFractionDigits: 2 });
+const sum = (arr) => arr.reduce((a, b) => a + b, 0);
+const pad = (n) => String(n).padStart(2, "0");
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+const thisMonth = () => todayISO().slice(0, 7);
+const monthName = (ym) => { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("th-TH", { month: "long", year: "numeric" }); };
+const shiftMonth = (ym, d) => { const [y, m] = ym.split("-").map(Number); const t = new Date(y, m - 1 + d, 1); return `${t.getFullYear()}-${pad(t.getMonth() + 1)}`; };
+const fmtDate = (iso) => new Date(iso + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" });
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const catOf = (list, id) => list.find((c) => c.id === id) || list[list.length - 1];
+const near0 = (n) => Math.abs(n) < 0.005;
+
+function toast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+// เข้ารหัสรหัสผ่านก่อนเก็บ (ไม่เก็บตัวเลขรหัสจริง)
+function hashPin(pin, salt) {
+  const s = `${salt}:${pin}`;
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for (let r = 0; r < 500; r++) {
+    for (let i = 0; i < s.length; i++) {
+      const c = s.charCodeAt(i);
+      h1 = Math.imul(h1 ^ c, 2654435761);
+      h2 = Math.imul(h2 ^ c, 1597334677);
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  }
+  return (h2 >>> 0).toString(16).padStart(8, "0") + (h1 >>> 0).toString(16).padStart(8, "0");
+}
+
+// =====================================================================
+//  การบันทึกข้อมูล (เก็บไว้ในเครื่องนี้เท่านั้น แยกของใครของมัน)
+// =====================================================================
+let db = null;
+let storageOK = true;
+let unlocked = false;
+const ui = { tab: "home", month: thisMonth() };
+
+function loadDB() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) { storageOK = false; return null; }
+}
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); storageOK = true; }
+  catch (e) { storageOK = false; }
+  renderBanner();
+}
+function renderBanner() {
+  const b = $("banner");
+  b.classList.toggle("hidden", storageOK);
+  b.textContent = "⚠️ เบราว์เซอร์นี้ไม่อนุญาตให้บันทึกข้อมูล ข้อมูลจะหายเมื่อปิดหน้า (ลองเปิดด้วย Safari หรือ Chrome ตามปกติ)";
+}
+function newProfile(avatar) {
+  return {
+    name: KID.name, avatar,
+    wallets: DEFAULT_WALLETS.map((w) => ({ ...w, id: uid(), due: "" })),
+    tx: [], holdings: [],
+  };
+}
+const cur = () => db.profile;
+const walletOf = (p, id) => p.wallets.find((w) => w.id === id);
+
+// =====================================================================
+//  แป้นใส่รหัส (ใช้ทั้งตอนตั้งรหัส เปิดแอป และเปลี่ยนรหัส)
+// =====================================================================
+let activePad = null;
+let wrongTries = 0;
+let waitUntil = 0;
+
+function showPinPad({ title, sub = "", length, onDone, onCancel, footer = "" }) {
+  const el = $("lock");
+  el.classList.remove("hidden");
+  const avatar = db ? db.profile.avatar : (showPinPad.avatar || KID.avatar);
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", onCancel ? "cancel" : "", "0", "back"];
+  el.innerHTML = `
+    <div class="lock-box">
+      <div class="lock-av">${avatar}</div>
+      <h2>${title}</h2>
+      <div class="muted">${sub}</div>
+      <div class="dots" id="pinDots">${"<span></span>".repeat(length)}</div>
+      <div class="pin-msg" id="pinMsg"></div>
+      <div class="keypad">
+        ${keys.map((k) => {
+          if (!k) return "<span></span>";
+          if (k === "cancel") return `<button class="fn" data-k="cancel">ยกเลิก</button>`;
+          if (k === "back") return `<button class="fn" data-k="back" aria-label="ลบ">⌫ ลบ</button>`;
+          return `<button data-k="${k}">${k}</button>`;
+        }).join("")}
+      </div>
+      ${footer}
+    </div>`;
+  let val = "";
+  const dots = () => $("pinDots").querySelectorAll("span").forEach((d, i) => d.classList.toggle("on", i < val.length));
+  const msg = (m) => ($("pinMsg").textContent = m);
+  const press = (k) => {
+    if (k === "cancel") { activePad = null; onCancel(); return; }
+    const left = Math.ceil((waitUntil - Date.now()) / 1000);
+    if (left > 0) { msg(`ใส่ผิดหลายครั้ง รออีก ${left} วินาที`); return; }
+    if (k === "back") { val = val.slice(0, -1); dots(); return; }
+    if (val.length >= length) return;
+    val += k;
+    dots();
+    if (val.length === length) {
+      const entered = val;
+      setTimeout(() => {
+        const result = onDone(entered);
+        if (typeof result === "string") {
+          msg(result);
+          const d = $("pinDots");
+          d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
+          val = "";
+          dots();
+        }
+      }, 150);
+    }
+  };
+  el.querySelector(".keypad").onclick = (e) => { const b = e.target.closest("[data-k]"); if (b) press(b.dataset.k); };
+  activePad = press;
+}
+function hidePinPad() { activePad = null; $("lock").classList.add("hidden"); $("lock").innerHTML = ""; }
+
+// รองรับการกดตัวเลขบนคีย์บอร์ด (ตอนใช้บนคอม)
+document.addEventListener("keydown", (e) => {
+  if (!activePad) return;
+  if (/^[0-9]$/.test(e.key)) activePad(e.key);
+  else if (e.key === "Backspace") activePad("back");
+});
+
+// ตรวจรหัส: ถูก = true, ผิด = ข้อความบอก
+function checkPin(pin, which) {
+  if (Date.now() < waitUntil) return `ใส่ผิดหลายครั้ง รออีก ${Math.ceil((waitUntil - Date.now()) / 1000)} วินาที`;
+  if (hashPin(pin, db.sec.salt) === db.sec[which]) { wrongTries = 0; return true; }
+  wrongTries++;
+  if (wrongTries >= MAX_TRIES) {
+    wrongTries = 0;
+    waitUntil = Date.now() + WAIT_SECONDS * 1000;
+    return `ใส่ผิด ${MAX_TRIES} ครั้งแล้ว รอ ${WAIT_SECONDS} วินาทีแล้วลองใหม่`;
+  }
+  return `รหัสไม่ถูกต้อง (เหลือโอกาสอีก ${MAX_TRIES - wrongTries} ครั้ง)`;
+}
+
+// ขั้นตอนตั้งรหัสใหม่ 2 รอบ (ใส่ + ยืนยัน)
+function askNewPin({ who, length, title, sub, onSet, onCancel }) {
+  showPinPad({
+    title, sub, length, onCancel,
+    onDone: (first) => {
+      showPinPad({
+        title: "ใส่รหัสเดิมอีกครั้งเพื่อยืนยัน", sub: who, length,
+        onCancel: onCancel || (() => askNewPin({ who, length, title, sub, onSet, onCancel })),
+        onDone: (second) => {
+          if (second !== first) {
+            askNewPin({ who, length, title, sub: "รหัส 2 ครั้งไม่ตรงกัน ลองตั้งใหม่อีกครั้งนะ", onSet, onCancel });
+            return;
+          }
+          onSet(first);
+        },
+      });
+    },
+  });
+}
+
+function lockApp() {
+  if (!db) return;
+  unlocked = false;
+  closeModal();
+  $("main").innerHTML = "";
+  showPinPad({
+    title: `สวัสดี ${esc(KID.name)}`,
+    sub: `ใส่รหัส ${KID_PIN_LENGTH} หลักเพื่อเปิดสมุดเงิน`,
+    length: KID_PIN_LENGTH,
+    footer: `<p><button class="link" id="forgotBtn">ลืมรหัส? ให้พ่อแม่ช่วย</button></p>`,
+    onDone: (pin) => {
+      const r = checkPin(pin, "pin");
+      if (r !== true) return r;
+      unlockApp();
+    },
+  });
+  $("forgotBtn").onclick = forgotPin;
+}
+function unlockApp() {
+  unlocked = true;
+  hidePinPad();
+  render();
+}
+function forgotPin() {
+  showPinPad({
+    title: "รหัสผู้ปกครอง",
+    sub: `ให้พ่อหรือแม่ใส่รหัสผู้ปกครอง ${PARENT_PIN_LENGTH} หลัก`,
+    length: PARENT_PIN_LENGTH,
+    onCancel: lockApp,
+    onDone: (pin) => {
+      const r = checkPin(pin, "parent");
+      if (r !== true) return r;
+      askNewPin({
+        who: KID.name, length: KID_PIN_LENGTH,
+        title: `ตั้งรหัสใหม่ของ ${esc(KID.name)}`, sub: `เลือกตัวเลข ${KID_PIN_LENGTH} หลักที่จำได้ง่าย`,
+        onSet: (newPin) => { db.sec.pin = hashPin(newPin, db.sec.salt); save(); unlockApp(); toast("ตั้งรหัสใหม่เรียบร้อย ✓"); },
+      });
+    },
+  });
+}
+
+// ล็อกเองเมื่อออกจากแอปไปนานเกินกำหนด
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) hiddenAt = Date.now();
+  else if (db && unlocked && Date.now() - hiddenAt > AUTO_LOCK_MS) lockApp();
+});
+$("lockBtn").onclick = () => { lockApp(); };
+
+// =====================================================================
+//  ตั้งค่าครั้งแรก
+// =====================================================================
+function renderSetup() {
+  $("nav").classList.add("hidden");
+  $("lockBtn").classList.add("hidden");
+  $("brand").textContent = `🐷 สมุดเงินของ ${KID.name}`;
+  let avatar = KID.avatar;
+  $("main").innerHTML = `
+    <section class="card setup-box" style="margin:20px auto">
+      <div class="avatar" id="setupAv" style="font-size:4.5rem">${avatar}</div>
+      <h1>สวัสดี ${esc(KID.name)}!</h1>
+      <p>นี่คือสมุดเงินของ <b>${esc(KID.name)}</b> คนเดียว มี 5 กระเป๋าไว้แบ่งเงินและตั้งเป้าหมายด้วยตัวเอง
+      แล้วตั้งรหัสผ่านไว้ จะได้ไม่มีใครเปิดดูได้</p>
+      <label>เลือกตัวการ์ตูนประจำตัว</label>
+      <div class="chips emoji" id="avChips" style="justify-content:center">
+        ${AVATARS.map((a) => `<button type="button" class="chip${a === avatar ? " selected" : ""}" data-value="${a}">${a}</button>`).join("")}
+      </div>
+      <p style="margin-top:24px"><button id="setupNext" style="font-size:1.2rem;padding:14px 36px">ต่อไป: ตั้งรหัสผ่าน ➜</button></p>
+    </section>`;
+  bindChips($("avChips"), (v) => { avatar = v; $("setupAv").textContent = v; });
+  $("setupNext").onclick = () => {
+    showPinPad.avatar = avatar;
+    askNewPin({
+      who: KID.name, length: KID_PIN_LENGTH,
+      title: `ตั้งรหัสของ ${esc(KID.name)}`, sub: `เลือกตัวเลข ${KID_PIN_LENGTH} หลักที่จำได้ แต่คนอื่นเดาไม่ได้`,
+      onCancel: () => { hidePinPad(); renderSetup(); },
+      onSet: (kidPin) => {
+        askNewPin({
+          who: "รหัสผู้ปกครอง", length: PARENT_PIN_LENGTH,
+          title: "ให้พ่อแม่ตั้งรหัสผู้ปกครอง",
+          sub: `ตัวเลข ${PARENT_PIN_LENGTH} หลัก ใช้ตอนลูกลืมรหัส (คนละรหัสกับของลูก)`,
+          onCancel: () => { hidePinPad(); renderSetup(); },
+          onSet: (parentPin) => {
+            if (parentPin.slice(0, KID_PIN_LENGTH) === kidPin) {
+              toast("รหัสผู้ปกครองควรต่างจากรหัสของลูก");
+            }
+            const salt = uid() + uid();
+            db = {
+              version: 2, kidId: KID_ID,
+              profile: newProfile(avatar),
+              sec: { salt, pin: hashPin(kidPin, salt), parent: hashPin(parentPin, salt) },
+            };
+            save();
+            unlockApp();
+            toast(`เรียบร้อย! เริ่มจากบันทึกเงินที่ ${KID.name} มีอยู่ตอนนี้ได้เลย`);
+          },
+        });
+      },
+    });
+  };
+}
+
+// =====================================================================
+//  การคำนวณ
+// =====================================================================
+function walletBalances(p) {
+  const b = {};
+  p.wallets.forEach((w) => (b[w.id] = 0));
+  const add = (id, v) => { if (id in b) b[id] += v; };
+  p.tx.forEach((t) => {
+    if (t.type === "income") Object.entries(t.split).forEach(([id, v]) => add(id, v));
+    else if (t.type === "expense" || t.type === "invest") add(t.wallet, -t.amount);
+    else if (t.type === "withdraw") add(t.wallet, t.amount);
+    else if (t.type === "transfer") { add(t.from, -t.amount); add(t.to, t.amount); }
+  });
+  return b;
+}
+function totals(p) {
+  const bal = walletBalances(p);
+  const cash = sum(Object.values(bal));
+  const invest = sum(p.holdings.map((h) => h.value));
+  const cost = sum(p.holdings.map((h) => h.cost));
+  return { bal, cash, invest, cost, net: cash + invest };
+}
+function monthStats(p, ym) {
+  const list = p.tx.filter((t) => t.date.slice(0, 7) === ym);
+  const incomeByCat = {}, expenseByCat = {};
+  let income = 0, expense = 0;
+  list.forEach((t) => {
+    if (t.type === "income" && t.cat !== "start") { income += t.amount; incomeByCat[t.cat] = (incomeByCat[t.cat] || 0) + t.amount; }
+    if (t.type === "expense") { expense += t.amount; expenseByCat[t.cat] = (expenseByCat[t.cat] || 0) + t.amount; }
+  });
+  return { list, income, expense, incomeByCat, expenseByCat, kept: income - expense };
+}
+// แบ่งรายรับเข้า 5 กระเป๋าตาม %
+function autoSplit(amount, wallets) {
+  const total = sum(wallets.map((w) => w.pct || 0));
+  const out = {};
+  if (total <= 0) { wallets.forEach((w, i) => (out[w.id] = i === 0 ? amount : 0)); return out; }
+  wallets.forEach((w) => (out[w.id] = Math.floor((amount * (w.pct || 0)) / total)));
+  const biggest = wallets.reduce((a, b) => ((b.pct || 0) > (a.pct || 0) ? b : a));
+  out[biggest.id] += Math.round((amount - sum(Object.values(out))) * 100) / 100;
+  return out;
+}
+function monthsUntil(due) {
+  if (!due) return 0;
+  const [y1, m1] = thisMonth().split("-").map(Number);
+  const [y2, m2] = due.slice(0, 7).split("-").map(Number);
+  return Math.max(1, (y2 - y1) * 12 + (m2 - m1));
+}
+
+// =====================================================================
+//  วาดหน้าจอ
+// =====================================================================
+const TABS = [
+  { id: "home", icon: "🏠", label: "หน้าแรก" },
+  { id: "wallets", icon: "👛", label: "5 กระเป๋า" },
+  { id: "records", icon: "📝", label: "รายรับรายจ่าย" },
+  { id: "invest", icon: "📈", label: "ลงทุน" },
+  { id: "settings", icon: "⚙️", label: "ตั้งค่า" },
+];
+
+function render() {
+  renderBanner();
+  if (!db) { renderSetup(); return; }
+  if (!unlocked) return;
+  const p = cur();
+  $("brand").textContent = `${p.avatar} สมุดเงินของ ${KID.name}`;
+  $("lockBtn").classList.remove("hidden");
+  $("nav").classList.remove("hidden");
+  $("nav").innerHTML = TABS
+    .map((t) => `<button class="${t.id === ui.tab ? "active" : ""}" data-action="tab" data-tab="${t.id}"><span class="i">${t.icon}</span>${t.label}</button>`)
+    .join("");
+  const views = { home: viewHome, wallets: viewWallets, records: viewRecords, invest: viewInvest, settings: viewSettings };
+  $("main").innerHTML = views[ui.tab](p);
+}
+
+// ---------- หน้าแรก ----------
+function viewHome(p) {
+  const T = totals(p);
+  const ms = monthStats(p, thisMonth());
+  const recent = [...p.tx].sort(txSort).slice(0, 5);
+  const rate = ms.income > 0 ? Math.round((ms.kept / ms.income) * 100) : null;
+  return `
+  <section class="card">
+    <div class="hello"><span class="avatar">${p.avatar}</span><div><div class="muted">สวัสดี</div><h1>${esc(KID.name)}</h1></div></div>
+    <div class="muted">ทรัพย์สินทั้งหมดของฉัน</div>
+    <div class="big-money">${fmt(T.net)} <small>บาท</small></div>
+    <div class="split2">
+      <div>👛 เงินใน 5 กระเป๋า<b>${fmt(T.cash)}</b></div>
+      <div>📈 เงินลงทุน<b>${fmt(T.invest)}</b></div>
+    </div>
+  </section>
+  <section class="quick3">
+    <button class="qa green" data-action="income">➕<span>รายรับ</span></button>
+    <button class="qa red" data-action="expense">➖<span>รายจ่าย</span></button>
+    <button class="qa blue" data-action="transfer">↔️<span>ย้ายเงิน</span></button>
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>👛 5 กระเป๋าของฉัน</h2><button class="link" data-action="tab" data-tab="wallets">ดูทั้งหมด ›</button></div>
+    <div class="wallet-mini">${p.wallets.map((w, i) => walletMini(w, T.bal[w.id], i)).join("")}</div>
+  </section>
+  <section class="card">
+    <h2>📅 เดือนนี้ (${monthName(thisMonth())})</h2>
+    <div class="stats3">
+      <div>รายรับ<b class="pos">${fmt(ms.income)}</b></div>
+      <div>รายจ่าย<b class="neg">${fmt(ms.expense)}</b></div>
+      <div>เหลือเก็บ<b>${fmt(ms.kept)}</b></div>
+    </div>
+    ${rate !== null ? `<div class="note">เดือนนี้เก็บไว้ได้ <b>${rate}%</b> ของรายรับ ${rate >= 50 ? "เยี่ยมมาก! 🌟" : rate >= 20 ? "ดีมาก 👍" : "ลองใช้จ่ายให้น้อยลงอีกนิดนะ"}</div>` : ""}
+  </section>
+  <section class="card">
+    <div class="card-head"><h2>🧾 รายการล่าสุด</h2><button class="link" data-action="tab" data-tab="records">ดูทั้งหมด ›</button></div>
+    ${recent.length ? recent.map((t) => txRow(p, t, false)).join("") : `<div class="empty">ยังไม่มีรายการ กด ➕ รายรับ เพื่อบันทึกเงินที่มีอยู่ตอนนี้ได้เลย</div>`}
+  </section>
+  <a class="card game-card" href="game.html">🎮<div><b>เกมฝึกออมเงิน</b><div class="muted">ลองฝึกวางแผนเก็บเงินแบบเกม</div></div>›</a>`;
+}
+
+function walletMini(w, bal, i) {
+  const color = WALLET_COLORS[i % WALLET_COLORS.length];
+  const pct = w.target > 0 ? Math.min(100, Math.max(0, (bal / w.target) * 100)) : null;
+  return `<button class="wm" style="border-color:${color}" data-action="tab" data-tab="wallets">
+    <span class="e">${w.emoji}</span> ${esc(w.name)}
+    <b class="${bal < 0 ? "neg" : ""}">${fmt(bal)} บาท</b>
+    ${pct !== null ? `<div class="bar"><div style="width:${pct}%;background:${color}"></div></div><span class="small muted">เป้า ${fmt(w.target)}</span>` : `<span class="small muted">ยังไม่ตั้งเป้า</span>`}
+  </button>`;
+}
+
+// ---------- 5 กระเป๋า ----------
+function viewWallets(p) {
+  const T = totals(p);
+  const pctTotal = sum(p.wallets.map((w) => w.pct || 0));
+  return `
+  <section class="card">
+    <h2>👛 แบ่งรายรับเข้า 5 กระเป๋า</h2>
+    <div class="muted">ทุกครั้งที่ได้เงิน แอปจะช่วยแบ่งเข้ากระเป๋าตาม % นี้ (แก้ % ได้ที่ปุ่ม ✏️ ของแต่ละกระเป๋า)</div>
+    <div class="pct-bar">${p.wallets.map((w, i) => w.pct > 0 ? `<div style="width:${(w.pct / Math.max(100, pctTotal)) * 100}%;background:${WALLET_COLORS[i]}">${w.emoji} ${w.pct}%</div>` : "").join("")}</div>
+    ${pctTotal !== 100 ? `<div class="warn">ตอนนี้รวมกันได้ ${pctTotal}% ควรปรับให้รวมกันได้ 100% พอดี</div>` : ""}
+  </section>
+  <div class="wallets">${p.wallets.map((w, i) => walletCard(w, T.bal[w.id], i)).join("")}</div>`;
+}
+
+function walletCard(w, bal, i) {
+  const color = WALLET_COLORS[i % WALLET_COLORS.length];
+  let goalHTML;
+  if (w.target > 0) {
+    const pct = Math.min(100, Math.max(0, (bal / w.target) * 100));
+    const remain = w.target - bal;
+    let plan = "";
+    if (remain > 0 && w.due) {
+      const m = monthsUntil(w.due);
+      plan = `<div class="small">📅 อยากได้ภายใน ${fmtDate(w.due)} ต้องเก็บเดือนละประมาณ <b>${fmt(Math.ceil(remain / m))} บาท</b></div>`;
+    }
+    goalHTML = `
+      <div class="bar"><div style="width:${pct}%;background:${color}"></div></div>
+      <div class="small">${remain > 0 ? `🎯 เป้าหมาย ${fmt(w.target)} บาท · ขาดอีก <b>${fmt(remain)}</b> บาท (${Math.round(pct)}%)` : `🎉 ถึงเป้าหมาย ${fmt(w.target)} บาทแล้ว!`}</div>
+      ${plan}`;
+  } else {
+    goalHTML = `<div class="small muted">ยังไม่ได้ตั้งยอดเงินเป้าหมาย กด ✏️ เพื่อตั้งเอง</div>`;
+  }
+  return `
+  <section class="card wallet" style="border-top-color:${color}">
+    <div class="w-head">
+      <span class="w-emoji">${w.emoji}</span>
+      <div><h2>${esc(w.name)}</h2><div class="muted small">${w.goal ? esc(w.goal) : "ยังไม่ได้เขียนเป้าหมาย"}</div></div>
+      <button class="ghost small" data-action="editWallet" data-wallet="${w.id}">✏️ แก้ไข</button>
+    </div>
+    <div class="w-bal ${bal < 0 ? "neg" : ""}">${fmt(bal)} <small class="muted" style="font-size:1rem">บาท</small></div>
+    ${goalHTML}
+    <div class="small muted" style="margin-top:6px">ได้ ${w.pct || 0}% ของทุกรายรับ</div>
+    <div class="w-actions">
+      <button class="small" style="background:var(--green);box-shadow:0 4px 0 #227a45" data-action="income" data-wallet="${w.id}">➕ ใส่เงิน</button>
+      <button class="small" style="background:var(--red);box-shadow:0 4px 0 #b8363a" data-action="expense" data-wallet="${w.id}">➖ ใช้เงิน</button>
+      <button class="small" style="background:var(--blue);box-shadow:0 4px 0 #3f6fcf" data-action="transfer" data-wallet="${w.id}">↔️ ย้าย</button>
+    </div>
+  </section>`;
+}
+
+// ---------- รายรับรายจ่าย ----------
+function viewRecords(p) {
+  const ms = monthStats(p, ui.month);
+  const list = [...ms.list].sort(txSort);
+  const rows = (cats, data, total, color) =>
+    cats.filter((c) => data[c.id]).map((c) => barRow(`${c.emoji} ${c.name}`, data[c.id], total, color)).join("") || `<div class="empty">ไม่มีข้อมูล</div>`;
+  return `
+  <section class="card">
+    <div class="month-nav">
+      <button class="ghost small" data-action="month" data-d="-1">◀</button>
+      <h2>${monthName(ui.month)}</h2>
+      <button class="ghost small" data-action="month" data-d="1">▶</button>
+    </div>
+    <div class="stats3" style="margin-top:14px">
+      <div>รายรับ<b class="pos">${fmt(ms.income)}</b></div>
+      <div>รายจ่าย<b class="neg">${fmt(ms.expense)}</b></div>
+      <div>เหลือเก็บ<b>${fmt(ms.kept)}</b></div>
+    </div>
+  </section>
+  <section class="quick3">
+    <button class="qa green" data-action="income">➕<span>รายรับ</span></button>
+    <button class="qa red" data-action="expense">➖<span>รายจ่าย</span></button>
+    <button class="qa blue" data-action="transfer">↔️<span>ย้ายเงิน</span></button>
+  </section>
+  <section class="card">
+    <h2>📊 ภาพรวมเดือนนี้</h2>
+    <h3>เงินเข้ามาจากไหน</h3>
+    ${rows(INCOME_CATS, ms.incomeByCat, ms.income, "var(--green)")}
+    <h3>เงินใช้ไปกับอะไร</h3>
+    ${rows(EXPENSE_CATS, ms.expenseByCat, ms.expense, "var(--red)")}
+  </section>
+  <section class="card">
+    <h2>🧾 รายการทั้งหมดของเดือนนี้</h2>
+    ${list.length ? list.map((t) => txRow(p, t, true)).join("") : `<div class="empty">เดือนนี้ยังไม่มีรายการ</div>`}
+  </section>`;
+}
+
+function barRow(label, v, total, color) {
+  const w = total > 0 ? (v / total) * 100 : 0;
+  return `<div class="row"><span>${label}</span><div class="track"><div style="width:${w}%;background:${color}"></div></div><span class="v">${fmt(v)}</span></div>`;
+}
+
+const txSort = (a, b) => (b.date + b.created).localeCompare(a.date + a.created);
+
+function txRow(p, t, withDelete) {
+  const wn = (id) => { const w = walletOf(p, id); return w ? `${w.emoji} ${esc(w.name)}` : "ไม่หักจากกระเป๋า"; };
+  const h = p.holdings.find((x) => x.id === t.holding);
+  const hn = h ? esc(h.name) : "การลงทุนที่ลบไปแล้ว";
+  let ic, title, sub, amt, cls;
+  if (t.type === "income") {
+    const c = catOf(INCOME_CATS, t.cat);
+    ic = c.emoji; title = c.name; cls = "pos"; amt = "+" + fmt(t.amount);
+    sub = Object.entries(t.split).filter(([, v]) => v).map(([id, v]) => { const w = walletOf(p, id); return w ? `${w.emoji}${fmt(v)}` : ""; }).join(" ");
+  } else if (t.type === "expense") {
+    const c = catOf(EXPENSE_CATS, t.cat);
+    ic = c.emoji; title = c.name; cls = "neg"; amt = "−" + fmt(t.amount); sub = "จาก " + wn(t.wallet);
+  } else if (t.type === "transfer") {
+    ic = "↔️"; title = "ย้ายเงิน"; cls = ""; amt = fmt(t.amount); sub = `${wn(t.from)} ➜ ${wn(t.to)}`;
+  } else if (t.type === "invest") {
+    ic = "📈"; title = "ลงทุน: " + hn; cls = ""; amt = fmt(t.amount); sub = "จาก " + wn(t.wallet);
+  } else {
+    ic = "💰"; title = "ถอนเงินลงทุน: " + hn; cls = ""; amt = fmt(t.amount); sub = "เข้า " + wn(t.wallet);
+  }
+  const note = t.note ? ` · ${esc(t.note)}` : "";
+  return `<div class="tx"><span class="ic">${ic}</span>
+    <div class="body"><div class="t">${title}</div><div class="s">${fmtDate(t.date)} · ${sub}${note}</div></div>
+    <span class="amt ${cls}">${amt}</span>
+    ${withDelete ? `<button class="del" data-action="delTx" data-id="${t.id}" aria-label="ลบรายการ">🗑️</button>` : ""}
+  </div>`;
+}
+
+// ---------- ลงทุน ----------
+function viewInvest(p) {
+  const T = totals(p);
+  const gain = T.invest - T.cost;
+  const gainPct = T.cost > 0 ? (gain / T.cost) * 100 : 0;
+  const byType = {};
+  p.holdings.forEach((h) => (byType[h.type] = (byType[h.type] || 0) + h.value));
+  return `
+  <section class="card">
+    <h2>📈 เงินลงทุนของฉัน</h2>
+    <div class="stats3">
+      <div>เงินต้นที่ลงไป<b>${fmt(T.cost)}</b></div>
+      <div>มูลค่าตอนนี้<b>${fmt(T.invest)}</b></div>
+      <div>กำไร/ขาดทุน<b class="${gain >= 0 ? "pos" : "neg"}">${gain >= 0 ? "+" : ""}${fmt(gain)}<br><span class="small">(${gain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%)</span></b></div>
+    </div>
+    <div style="text-align:center;margin-top:16px"><button data-action="addHolding">➕ เพิ่มการลงทุน</button></div>
+  </section>
+  ${p.holdings.length ? `
+  <section class="card">
+    <h2>🥧 ลงทุนในอะไรบ้าง</h2>
+    ${INVEST_TYPES.filter((t) => byType[t.id]).map((t) => barRow(`${t.emoji} ${t.name}`, byType[t.id], T.invest, RISK[t.risk].color)).join("")}
+    <div class="small muted" style="margin-top:6px">สีเขียว = เสี่ยงต่ำ · สีเหลือง = เสี่ยงปานกลาง · สีแดง = เสี่ยงสูง</div>
+  </section>` : ""}
+  ${p.holdings.map((h) => holdingCard(h)).join("") || `<section class="card empty">ยังไม่มีการลงทุน กด ➕ เพิ่มการลงทุน เพื่อเริ่มบันทึก เช่น สมุดบัญชีออมทรัพย์ หรือสลากออมสิน</section>`}
+  <section class="card">
+    <h2>💡 ความเสี่ยงคืออะไร?</h2>
+    <p style="margin-top:0">ความเสี่ยงคือโอกาสที่เงินลงทุนจะ <b>ลดลง</b> ได้ ปกติยิ่งมีโอกาสได้ผลตอบแทนมาก ก็ยิ่งมีโอกาสขาดทุนมาก</p>
+    <div class="row" style="grid-template-columns:8em 1fr"><span class="tag" style="background:${RISK[1].color}">เสี่ยงต่ำ</span><span>เงินต้นค่อนข้างปลอดภัย แต่โตช้า เช่น เงินฝาก สลากออมสิน พันธบัตร</span></div>
+    <div class="row" style="grid-template-columns:8em 1fr"><span class="tag" style="background:${RISK[2].color}">เสี่ยงปานกลาง</span><span>ราคาขึ้นลงได้ เช่น ทองคำ กองทุนรวม (ความเสี่ยงต่างกันไปตามชนิดกองทุน)</span></div>
+    <div class="row" style="grid-template-columns:8em 1fr"><span class="tag" style="background:${RISK[3].color}">เสี่ยงสูง</span><span>ราคาขึ้นลงเร็วและแรง เช่น หุ้น</span></div>
+    <div class="note">หน้านี้มีไว้บันทึกและติดตามเงินลงทุนเท่านั้น ไม่ใช่คำแนะนำการลงทุน ก่อนลงทุนทุกครั้งควรปรึกษาพ่อแม่ก่อนนะ</div>
+  </section>`;
+}
+
+function holdingCard(h) {
+  const t = catOf(INVEST_TYPES, h.type);
+  const r = RISK[t.risk];
+  const gain = h.value - h.cost;
+  const gainPct = h.cost > 0 ? (gain / h.cost) * 100 : 0;
+  return `
+  <section class="card holding" style="border-left-color:${r.color}">
+    <div class="w-head">
+      <span class="w-emoji">${t.emoji}</span>
+      <div><h2>${esc(h.name)}</h2><div class="small muted">${t.name} <span class="tag" style="background:${r.color}">${r.label}</span> · เริ่ม ${fmtDate(h.start)}</div></div>
+    </div>
+    <div class="h-grid">
+      <div>เงินต้น<b>${fmt(h.cost)}</b></div>
+      <div>มูลค่าตอนนี้<b>${fmt(h.value)}</b></div>
+      <div>กำไร/ขาดทุน<b class="${gain >= 0 ? "pos" : "neg"}">${gain >= 0 ? "+" : ""}${fmt(gain)} (${gainPct.toFixed(1)}%)</b></div>
+    </div>
+    ${h.history && h.history.length > 1 ? `<div class="small muted">อัปเดตมูลค่าล่าสุด ${fmtDate(h.history[h.history.length - 1].date)}</div>` : ""}
+    <div class="h-actions" style="margin-top:10px">
+      <button class="small" data-action="topup" data-id="${h.id}">➕ ลงเงินเพิ่ม</button>
+      <button class="small ghost" data-action="revalue" data-id="${h.id}">🔄 อัปเดตมูลค่า</button>
+      <button class="small ghost" data-action="withdrawH" data-id="${h.id}">💰 ถอน/ขาย</button>
+      <button class="small ghost" data-action="delHolding" data-id="${h.id}">🗑️ ลบ</button>
+    </div>
+  </section>`;
+}
+
+// ---------- ตั้งค่า ----------
+function viewSettings(p) {
+  return `
+  <section class="card">
+    <h2>${p.avatar} ข้อมูลของ ${esc(KID.name)}</h2>
+    <div class="muted">${p.tx.length} รายการ · ${p.holdings.length} การลงทุน</div>
+    <p><button class="ghost" data-action="editAvatar">🎨 เปลี่ยนตัวการ์ตูน</button></p>
+  </section>
+  <section class="card">
+    <h2>🔒 รหัสผ่าน</h2>
+    <p style="margin-top:0" class="muted">แอปจะถามรหัสทุกครั้งที่เปิด และล็อกเองเมื่อออกจากแอปเกิน 1 นาที</p>
+    <div class="h-actions">
+      <button data-action="changePin">เปลี่ยนรหัสของ ${esc(KID.name)}</button>
+      <button class="ghost" data-action="changeParent">เปลี่ยนรหัสผู้ปกครอง</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2>💾 สำรองข้อมูล</h2>
+    <p style="margin-top:0">ข้อมูลทั้งหมดเก็บอยู่ใน iPad เครื่องนี้เท่านั้น ถ้าลบแอปหรือล้างข้อมูล Safari ข้อมูลจะหาย
+    ควรกด <b>ดาวน์โหลดไฟล์สำรอง</b> เก็บไว้เดือนละครั้ง (บน iPad ไฟล์จะไปอยู่ในแอป Files)</p>
+    <div class="h-actions">
+      <button data-action="exportData">⬇️ ดาวน์โหลดไฟล์สำรอง</button>
+      <button class="ghost" data-action="importData">⬆️ นำข้อมูลกลับจากไฟล์สำรอง</button>
+    </div>
+  </section>
+  <section class="card">
+    <h2>📱 ติดตั้งลงหน้าจอ iPad</h2>
+    <ol class="steps">
+      <li>เปิดหน้านี้ใน Safari</li>
+      <li>แตะปุ่มแชร์ (สี่เหลี่ยมมีลูกศรชี้ขึ้น)</li>
+      <li>เลือก "เพิ่มไปยังหน้าจอโฮม" แล้วตั้งชื่อว่า ${esc(KID.name)}</li>
+    </ol>
+  </section>
+  <section class="card">
+    <h2>🎮 เกมฝึกออมเงิน</h2>
+    <a href="game.html"><button>เปิดเกม ➜</button></a>
+  </section>
+  <section class="card">
+    <h2>⚠️ ล้างข้อมูล</h2>
+    <p style="margin-top:0" class="muted">ลบรายการ เงินลงทุน และการตั้งค่ากระเป๋าทั้งหมดของ ${esc(KID.name)} (รหัสผ่านยังเหมือนเดิม) ต้องใช้รหัสผู้ปกครอง ลบแล้วกู้คืนไม่ได้ ยกเว้นมีไฟล์สำรอง</p>
+    <button class="danger" data-action="resetKid">ล้างข้อมูลของ ${esc(KID.name)}</button>
+  </section>`;
+}
+
+// =====================================================================
+//  หน้าต่างกรอกข้อมูล
+// =====================================================================
+function bindChips(group, onPick) {
+  group.addEventListener("click", (e) => {
+    const b = e.target.closest(".chip");
+    if (!b) return;
+    group.querySelectorAll(".chip").forEach((x) => x.classList.toggle("selected", x === b));
+    if (onPick) onPick(b.dataset.value);
+  });
+}
+function openModal(html) {
+  $("sheet").innerHTML = html;
+  $("modal").classList.remove("hidden");
+  $("sheet").scrollTop = 0;
+}
+function closeModal() { $("modal").classList.add("hidden"); $("sheet").innerHTML = ""; }
+$("modal").addEventListener("click", (e) => { if (e.target === $("modal")) closeModal(); });
+
+function walletChips(p, bal, extra = []) {
+  return [...extra, ...p.wallets.map((w) => ({ value: w.id, label: `${w.emoji} ${esc(w.name)}<small>มี ${fmt(bal[w.id])} บาท</small>` }))];
+}
+function catChips(list) { return list.map((c) => ({ value: c.id, label: `${c.emoji} ${c.name}` })); }
+
+// ฟอร์มทั่วไป: fields = [{id, label, type: text|number|date|chips|checkbox|info, options, value}]
+function openForm({ title, fields, submit = "บันทึก", onSubmit }) {
+  const vals = {};
+  let html = `<h2>${title}</h2><form id="theForm" novalidate>`;
+  fields.forEach((f) => {
+    if (f.type === "info") { html += `<div class="note">${f.label}</div>`; return; }
+    if (f.type === "chips") {
+      vals[f.id] = f.value ?? "";
+      html += `<label>${f.label}</label><div class="chips${f.emoji ? " emoji" : ""}" data-field="${f.id}">` +
+        f.options.map((o) => `<button type="button" class="chip${String(o.value) === String(f.value) ? " selected" : ""}" data-value="${esc(o.value)}">${o.label}</button>`).join("") +
+        `</div>`;
+      return;
+    }
+    const num = f.type === "number" ? `inputmode="decimal" min="0" step="any"` : "";
+    html += `<label for="fld_${f.id}">${f.label}</label><input id="fld_${f.id}" name="${f.id}" type="${f.type}" ${num} ${f.big ? `class="big-input"` : ""} value="${esc(f.value ?? "")}" placeholder="${esc(f.placeholder || "")}" ${f.max ? `maxlength="${f.max}"` : ""}>`;
+  });
+  html += `<div class="error" id="formErr"></div><div class="actions"><button type="button" class="ghost" id="cancelBtn">ยกเลิก</button><button type="submit">${submit}</button></div></form>`;
+  openModal(html);
+  $("sheet").querySelectorAll(".chips").forEach((g) => bindChips(g, (v) => (vals[g.dataset.field] = v)));
+  $("cancelBtn").onclick = closeModal;
+  $("theForm").onsubmit = (e) => {
+    e.preventDefault();
+    const form = $("theForm");
+    fields.forEach((f) => {
+      if (f.type === "chips" || f.type === "info") return;
+      const el = form.elements[f.id];
+      if (f.type === "number") vals[f.id] = el.value.trim() === "" ? NaN : Number(el.value);
+      else vals[f.id] = el.value.trim();
+    });
+    const err = onSubmit(vals);
+    if (err) $("formErr").textContent = err;
+    else { closeModal(); render(); }
+  };
+  const first = $("sheet").querySelector("input[type=number], input[type=text]");
+  if (first && window.innerWidth > 700) first.focus();
+}
+
+function addTx(p, t) { p.tx.push({ id: uid(), created: new Date().toISOString(), ...t }); save(); }
+
+// ---------- บันทึกรายรับ (กรอกยอดเอง + แบ่งเข้า 5 กระเป๋า) ----------
+function openIncomeForm(presetWallet) {
+  const p = cur();
+  let mode = presetWallet ? "one" : "auto";
+  let cat = "allowance";
+  openModal(`
+    <h2>➕ บันทึกรายรับ</h2>
+    <label for="incAmt">ได้เงินมากี่บาท?</label>
+    <input id="incAmt" type="number" inputmode="decimal" min="0" step="any" class="big-input" placeholder="0">
+    <label>เงินมาจากไหน?</label>
+    <div class="chips" id="incCat">${catChips(INCOME_CATS).map((o) => `<button type="button" class="chip${o.value === cat ? " selected" : ""}" data-value="${o.value}">${o.label}</button>`).join("")}</div>
+    <label for="incNote">บันทึกเพิ่มเติม (ไม่ใส่ก็ได้)</label>
+    <input id="incNote" type="text" maxlength="60" placeholder="เช่น ค่าขนมจากแม่, ล้างรถให้คุณลุง">
+    <label for="incDate">วันที่</label>
+    <input id="incDate" type="date" value="${todayISO()}">
+    <label>แบ่งเงินใส่กระเป๋า</label>
+    <div class="chips" id="incMode">
+      <button type="button" class="chip${mode === "auto" ? " selected" : ""}" data-value="auto">แบ่งตาม % อัตโนมัติ</button>
+      <button type="button" class="chip" data-value="manual">แบ่งเอง</button>
+      ${presetWallet ? `<button type="button" class="chip selected" data-value="one">ใส่กระเป๋าเดียว</button>` : ""}
+    </div>
+    <div id="incSplit" style="margin-top:8px">
+      ${p.wallets.map((w) => `<div class="split-row"><span>${w.emoji} ${esc(w.name)} <span class="small muted">${w.pct || 0}%</span></span><input type="number" inputmode="decimal" min="0" step="any" data-wid="${w.id}" value="0"></div>`).join("")}
+    </div>
+    <div id="incLeft" class="left"></div>
+    <div class="error" id="formErr"></div>
+    <div class="actions"><button type="button" class="ghost" id="cancelBtn">ยกเลิก</button><button type="button" id="incSave">บันทึก</button></div>`);
+
+  const amtEl = $("incAmt");
+  const inputs = [...$("incSplit").querySelectorAll("input")];
+  const amount = () => Number(amtEl.value) || 0;
+  const fill = () => {
+    const a = amount();
+    if (mode === "auto") {
+      const s = autoSplit(a, p.wallets);
+      inputs.forEach((i) => (i.value = s[i.dataset.wid]));
+    } else if (mode === "one") {
+      inputs.forEach((i) => (i.value = i.dataset.wid === presetWallet ? a : 0));
+    }
+    updateLeft();
+  };
+  const updateLeft = () => {
+    const left = Math.round((amount() - sum(inputs.map((i) => Number(i.value) || 0))) * 100) / 100;
+    const el = $("incLeft");
+    if (near0(left)) { el.innerHTML = `<span class="pos">แบ่งครบแล้ว ✓</span>`; }
+    else if (left > 0) { el.innerHTML = `<span class="neg">ยังไม่ได้แบ่งอีก ${fmt(left)} บาท</span>`; }
+    else { el.innerHTML = `<span class="neg">แบ่งเกินมา ${fmt(-left)} บาท</span>`; }
+    return left;
+  };
+  amtEl.oninput = fill;
+  inputs.forEach((i) => (i.oninput = () => {
+    if (mode !== "manual") {
+      mode = "manual";
+      $("incMode").querySelectorAll(".chip").forEach((c) => c.classList.toggle("selected", c.dataset.value === "manual"));
+    }
+    updateLeft();
+  }));
+  bindChips($("incCat"), (v) => (cat = v));
+  bindChips($("incMode"), (v) => { mode = v; fill(); });
+  $("cancelBtn").onclick = closeModal;
+  fill();
+  if (window.innerWidth > 700) amtEl.focus();
+
+  $("incSave").onclick = () => {
+    const a = amount();
+    const err = (m) => ($("formErr").textContent = m);
+    if (!(a > 0)) return err("ใส่จำนวนเงินที่ได้มาก่อนนะ");
+    if (inputs.some((i) => Number(i.value) < 0)) return err("จำนวนเงินในกระเป๋าติดลบไม่ได้");
+    if (!near0(updateLeft())) return err("แบ่งเงินใส่กระเป๋าให้ครบพอดีก่อนนะ");
+    const split = {};
+    inputs.forEach((i) => (split[i.dataset.wid] = Number(i.value) || 0));
+    addTx(p, { type: "income", amount: a, cat, note: $("incNote").value.trim(), date: $("incDate").value || todayISO(), split });
+    closeModal();
+    render();
+    toast(`บันทึกรายรับ ${fmt(a)} บาทแล้ว 🎉`);
+  };
+}
+
+// ---------- บันทึกรายจ่าย ----------
+function openExpenseForm(presetWallet) {
+  const p = cur();
+  const bal = walletBalances(p);
+  openForm({
+    title: "➖ บันทึกรายจ่าย",
+    fields: [
+      { id: "amount", label: "ใช้เงินไปกี่บาท?", type: "number", big: true, placeholder: "0" },
+      { id: "wallet", label: "ใช้เงินจากกระเป๋าไหน?", type: "chips", options: walletChips(p, bal), value: presetWallet || p.wallets[0].id },
+      { id: "cat", label: "ใช้กับอะไร?", type: "chips", options: catChips(EXPENSE_CATS), value: "snack" },
+      { id: "note", label: "บันทึกเพิ่มเติม (ไม่ใส่ก็ได้)", type: "text", max: 60, placeholder: "เช่น ไอศกรีม, สมุดวาดรูป" },
+      { id: "date", label: "วันที่", type: "date", value: todayISO() },
+    ],
+    onSubmit: (v) => {
+      if (!(v.amount > 0)) return "ใส่จำนวนเงินที่ใช้ไปก่อนนะ";
+      const w = walletOf(p, v.wallet);
+      if (v.amount > bal[v.wallet] + 0.001)
+        return `เงินในกระเป๋า ${w.name} มีไม่พอ (มี ${fmt(bal[v.wallet])} บาท) ลองย้ายเงินจากกระเป๋าอื่นมาก่อน หรือบันทึกรายรับที่ยังไม่ได้บันทึก`;
+      addTx(p, { type: "expense", amount: v.amount, wallet: v.wallet, cat: v.cat, note: v.note, date: v.date || todayISO() });
+      toast(`บันทึกรายจ่าย ${fmt(v.amount)} บาทแล้ว`);
+    },
+  });
+}
+
+// ---------- ย้ายเงินระหว่างกระเป๋า ----------
+function openTransferForm(presetWallet) {
+  const p = cur();
+  const bal = walletBalances(p);
+  const from = presetWallet || p.wallets[0].id;
+  const to = p.wallets.find((w) => w.id !== from).id;
+  openForm({
+    title: "↔️ ย้ายเงินระหว่างกระเป๋า",
+    fields: [
+      { id: "amount", label: "ย้ายกี่บาท?", type: "number", big: true, placeholder: "0" },
+      { id: "from", label: "ย้ายออกจากกระเป๋า", type: "chips", options: walletChips(p, bal), value: from },
+      { id: "to", label: "ย้ายเข้ากระเป๋า", type: "chips", options: walletChips(p, bal), value: to },
+      { id: "note", label: "เหตุผล (ไม่ใส่ก็ได้)", type: "text", max: 60, placeholder: "เช่น เก็บเพิ่มให้ถึงเป้าเร็วขึ้น" },
+    ],
+    submit: "ย้ายเงิน",
+    onSubmit: (v) => {
+      if (!(v.amount > 0)) return "ใส่จำนวนเงินที่จะย้ายก่อนนะ";
+      if (v.from === v.to) return "เลือกกระเป๋าต้นทางกับปลายทางให้ต่างกันนะ";
+      if (v.amount > bal[v.from] + 0.001) return `กระเป๋าต้นทางมีเงินแค่ ${fmt(bal[v.from])} บาท`;
+      addTx(p, { type: "transfer", amount: v.amount, from: v.from, to: v.to, note: v.note, date: todayISO() });
+      toast("ย้ายเงินเรียบร้อย");
+    },
+  });
+}
+
+// ---------- แก้ไขกระเป๋าและเป้าหมาย ----------
+function openWalletForm(id) {
+  const p = cur();
+  const w = walletOf(p, id);
+  const others = sum(p.wallets.filter((x) => x.id !== id).map((x) => x.pct || 0));
+  openForm({
+    title: `✏️ แก้ไขกระเป๋า ${w.emoji} ${esc(w.name)}`,
+    fields: [
+      { id: "emoji", label: "รูปกระเป๋า", type: "chips", emoji: true, options: WALLET_EMOJIS.map((e) => ({ value: e, label: e })), value: w.emoji },
+      { id: "name", label: "ชื่อกระเป๋า", type: "text", max: 24, value: w.name },
+      { id: "goal", label: "เป้าหมายของกระเป๋านี้ (เขียนเอง)", type: "text", max: 60, value: w.goal, placeholder: "เช่น ซื้อจักรยานคันใหม่" },
+      { id: "target", label: "ยอดเงินเป้าหมาย (บาท) — ไม่ตั้งก็ได้", type: "number", value: w.target || "", placeholder: "เช่น 2500" },
+      { id: "due", label: "อยากได้ภายในวันที่ (ไม่ใส่ก็ได้)", type: "date", value: w.due || "" },
+      { id: "pct", label: "แบ่งรายรับเข้ากระเป๋านี้กี่ %", type: "number", value: w.pct || 0 },
+      { id: "info", type: "info", label: `กระเป๋าอื่นรวมกันได้ ${others}% กระเป๋านี้ควรเป็น <b>${Math.max(0, 100 - others)}%</b> เพื่อให้ครบ 100% พอดี` },
+    ],
+    onSubmit: (v) => {
+      if (!v.name) return "ตั้งชื่อกระเป๋าด้วยนะ";
+      const target = isNaN(v.target) ? 0 : v.target;
+      const pct = isNaN(v.pct) ? 0 : Math.round(v.pct);
+      if (target < 0) return "ยอดเป้าหมายติดลบไม่ได้";
+      if (pct < 0 || pct > 100) return "% ต้องอยู่ระหว่าง 0 ถึง 100";
+      Object.assign(w, { emoji: v.emoji, name: v.name, goal: v.goal, target, due: v.due, pct });
+      save();
+      const total = others + pct;
+      toast(total === 100 ? "บันทึกแล้ว ✓" : `บันทึกแล้ว แต่ตอนนี้ % รวมกันได้ ${total}% ควรปรับให้ครบ 100%`);
+    },
+  });
+}
+
+// ---------- การลงทุน ----------
+function openAddHolding() {
+  const p = cur();
+  const bal = walletBalances(p);
+  const investWallet = p.wallets[3] ? p.wallets[3].id : p.wallets[0].id;
+  openForm({
+    title: "➕ เพิ่มการลงทุน",
+    fields: [
+      { id: "type", label: "ลงทุนในอะไร?", type: "chips", options: INVEST_TYPES.map((t) => ({ value: t.id, label: `${t.emoji} ${t.name}` })), value: "savings" },
+      { id: "name", label: "ตั้งชื่อ", type: "text", max: 40, placeholder: "เช่น บัญชีออมสินของหนู, สลากออมสิน 2569" },
+      { id: "amount", label: "เงินต้นที่ลงไป (บาท)", type: "number", big: true, placeholder: "0" },
+      { id: "from", label: "เอาเงินมาจากไหน?", type: "chips", options: walletChips(p, bal, [{ value: "", label: "มีอยู่แล้ว<small>ไม่หักจากกระเป๋า</small>" }]), value: investWallet },
+      { id: "value", label: "มูลค่าตอนนี้ (ถ้าเท่ากับเงินต้น ไม่ต้องใส่)", type: "number", placeholder: "เท่ากับเงินต้น" },
+      { id: "start", label: "วันที่เริ่มลงทุน", type: "date", value: todayISO() },
+    ],
+    onSubmit: (v) => {
+      if (!v.name) return "ตั้งชื่อการลงทุนด้วยนะ";
+      if (!(v.amount > 0)) return "ใส่เงินต้นที่ลงไปก่อนนะ";
+      if (v.from && v.amount > bal[v.from] + 0.001) return `กระเป๋านี้มีเงินแค่ ${fmt(bal[v.from])} บาท`;
+      const value = isNaN(v.value) ? v.amount : v.value;
+      const start = v.start || todayISO();
+      const h = { id: uid(), type: v.type, name: v.name, cost: v.amount, value, start, history: [{ date: start, value }] };
+      p.holdings.push(h);
+      addTx(p, { type: "invest", amount: v.amount, wallet: v.from, holding: h.id, note: "", date: start });
+      toast("เพิ่มการลงทุนแล้ว 📈");
+    },
+  });
+}
+function openTopup(id) {
+  const p = cur();
+  const h = p.holdings.find((x) => x.id === id);
+  const bal = walletBalances(p);
+  openForm({
+    title: `➕ ลงเงินเพิ่มใน ${esc(h.name)}`,
+    fields: [
+      { id: "amount", label: "ลงเพิ่มกี่บาท?", type: "number", big: true, placeholder: "0" },
+      { id: "from", label: "เอาเงินมาจากไหน?", type: "chips", options: walletChips(p, bal, [{ value: "", label: "ไม่หักจากกระเป๋า" }]), value: p.wallets[3] ? p.wallets[3].id : "" },
+    ],
+    onSubmit: (v) => {
+      if (!(v.amount > 0)) return "ใส่จำนวนเงินก่อนนะ";
+      if (v.from && v.amount > bal[v.from] + 0.001) return `กระเป๋านี้มีเงินแค่ ${fmt(bal[v.from])} บาท`;
+      h.cost += v.amount; h.value += v.amount;
+      h.history.push({ date: todayISO(), value: h.value });
+      addTx(p, { type: "invest", amount: v.amount, wallet: v.from, holding: h.id, note: "ลงเงินเพิ่ม", date: todayISO() });
+      toast("ลงเงินเพิ่มแล้ว");
+    },
+  });
+}
+function openRevalue(id) {
+  const p = cur();
+  const h = p.holdings.find((x) => x.id === id);
+  openForm({
+    title: `🔄 อัปเดตมูลค่า ${esc(h.name)}`,
+    fields: [
+      { id: "info", type: "info", label: `เงินต้น ${fmt(h.cost)} บาท · มูลค่าล่าสุด ${fmt(h.value)} บาท<br>ดูยอดล่าสุดได้จากสมุดบัญชี แอปธนาคาร หรือถามพ่อแม่` },
+      { id: "value", label: "มูลค่าตอนนี้ (บาท)", type: "number", big: true, value: h.value },
+    ],
+    onSubmit: (v) => {
+      if (isNaN(v.value) || v.value < 0) return "ใส่มูลค่าให้ถูกต้องนะ";
+      const diff = v.value - h.value;
+      h.value = v.value;
+      h.history.push({ date: todayISO(), value: v.value });
+      save();
+      toast(diff >= 0 ? `มูลค่าเพิ่มขึ้น ${fmt(diff)} บาท 🎉` : `มูลค่าลดลง ${fmt(-diff)} บาท`);
+    },
+  });
+}
+function openWithdrawH(id) {
+  const p = cur();
+  const h = p.holdings.find((x) => x.id === id);
+  const bal = walletBalances(p);
+  openForm({
+    title: `💰 ถอน/ขาย ${esc(h.name)}`,
+    fields: [
+      { id: "info", type: "info", label: `มูลค่าตอนนี้ ${fmt(h.value)} บาท` },
+      { id: "amount", label: "ถอนออกมากี่บาท?", type: "number", big: true, placeholder: "0" },
+      { id: "to", label: "เอาเงินเข้ากระเป๋าไหน?", type: "chips", options: walletChips(p, bal), value: p.wallets[1] ? p.wallets[1].id : p.wallets[0].id },
+    ],
+    submit: "ถอนเงิน",
+    onSubmit: (v) => {
+      if (!(v.amount > 0)) return "ใส่จำนวนเงินก่อนนะ";
+      if (v.amount > h.value + 0.001) return `ถอนได้ไม่เกิน ${fmt(h.value)} บาท`;
+      const costPart = h.value > 0 ? h.cost * (v.amount / h.value) : 0;
+      h.cost = Math.max(0, h.cost - costPart);
+      h.value = Math.max(0, h.value - v.amount);
+      h.history.push({ date: todayISO(), value: h.value });
+      addTx(p, { type: "withdraw", amount: v.amount, wallet: v.to, holding: h.id, costPart, note: "", date: todayISO() });
+      toast("ถอนเงินเข้ากระเป๋าแล้ว");
+    },
+  });
+}
+
+// ---------- รหัสผ่าน ----------
+function changePin() {
+  showPinPad({
+    title: "ใส่รหัสปัจจุบัน", sub: `รหัส ${KID_PIN_LENGTH} หลักของ ${esc(KID.name)}`, length: KID_PIN_LENGTH,
+    onCancel: unlockApp,
+    onDone: (pin) => {
+      const r = checkPin(pin, "pin");
+      if (r !== true) return r;
+      askNewPin({
+        who: KID.name, length: KID_PIN_LENGTH, title: "ตั้งรหัสใหม่", sub: `ตัวเลข ${KID_PIN_LENGTH} หลัก`, onCancel: unlockApp,
+        onSet: (n) => { db.sec.pin = hashPin(n, db.sec.salt); save(); unlockApp(); toast("เปลี่ยนรหัสเรียบร้อย ✓"); },
+      });
+    },
+  });
+}
+function changeParent() {
+  showPinPad({
+    title: "ใส่รหัสผู้ปกครองปัจจุบัน", sub: `${PARENT_PIN_LENGTH} หลัก`, length: PARENT_PIN_LENGTH,
+    onCancel: unlockApp,
+    onDone: (pin) => {
+      const r = checkPin(pin, "parent");
+      if (r !== true) return r;
+      askNewPin({
+        who: "รหัสผู้ปกครอง", length: PARENT_PIN_LENGTH, title: "ตั้งรหัสผู้ปกครองใหม่", sub: `ตัวเลข ${PARENT_PIN_LENGTH} หลัก`, onCancel: unlockApp,
+        onSet: (n) => { db.sec.parent = hashPin(n, db.sec.salt); save(); unlockApp(); toast("เปลี่ยนรหัสผู้ปกครองเรียบร้อย ✓"); },
+      });
+    },
+  });
+}
+
+// =====================================================================
+//  ปุ่มต่างๆ
+// =====================================================================
+const ACTIONS = {
+  tab: (d) => { ui.tab = d.tab; render(); window.scrollTo(0, 0); },
+  income: (d) => openIncomeForm(d.wallet),
+  expense: (d) => openExpenseForm(d.wallet),
+  transfer: (d) => openTransferForm(d.wallet),
+  editWallet: (d) => openWalletForm(d.wallet),
+  month: (d) => { ui.month = shiftMonth(ui.month, Number(d.d)); render(); },
+  delTx: (d) => {
+    const p = cur();
+    const t = p.tx.find((x) => x.id === d.id);
+    if (!t || !confirm("ลบรายการนี้ใช่ไหม?")) return;
+    const h = p.holdings.find((x) => x.id === t.holding);
+    if (h && t.type === "invest") { h.cost = Math.max(0, h.cost - t.amount); h.value = Math.max(0, h.value - t.amount); }
+    if (h && t.type === "withdraw") { h.cost += t.costPart || 0; h.value += t.amount; }
+    p.tx = p.tx.filter((x) => x.id !== d.id);
+    save(); render(); toast("ลบรายการแล้ว");
+  },
+  addHolding: () => openAddHolding(),
+  topup: (d) => openTopup(d.id),
+  revalue: (d) => openRevalue(d.id),
+  withdrawH: (d) => openWithdrawH(d.id),
+  delHolding: (d) => {
+    const p = cur();
+    const h = p.holdings.find((x) => x.id === d.id);
+    if (!confirm(`ลบ "${h.name}" ออกจากรายการลงทุนใช่ไหม? (มูลค่า ${fmt(h.value)} บาทจะไม่ถูกนับในทรัพย์สินอีก)`)) return;
+    p.holdings = p.holdings.filter((x) => x.id !== d.id);
+    save(); render(); toast("ลบแล้ว");
+  },
+  editAvatar: () => {
+    const p = cur();
+    openForm({
+      title: "🎨 เปลี่ยนตัวการ์ตูน",
+      fields: [{ id: "avatar", label: "เลือกตัวการ์ตูนประจำตัว", type: "chips", emoji: true, options: AVATARS.map((a) => ({ value: a, label: a })), value: p.avatar }],
+      onSubmit: (v) => { p.avatar = v.avatar; save(); },
+    });
+  },
+  changePin: () => changePin(),
+  changeParent: () => changeParent(),
+  exportData: () => {
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `money-book-${KID_ID}-${todayISO()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    toast("ดาวน์โหลดไฟล์สำรองแล้ว");
+  },
+  importData: () => $("importFile").click(),
+  resetKid: () => {
+    showPinPad({
+      title: "รหัสผู้ปกครอง", sub: `ใส่รหัสผู้ปกครองเพื่อล้างข้อมูลของ ${esc(KID.name)}`, length: PARENT_PIN_LENGTH,
+      onCancel: unlockApp,
+      onDone: (pin) => {
+        const r = checkPin(pin, "parent");
+        if (r !== true) return r;
+        if (!confirm(`ล้างข้อมูลทั้งหมดของ ${KID.name} ใช่ไหม? ลบแล้วกู้คืนไม่ได้`)) { unlockApp(); return; }
+        db.profile = newProfile(db.profile.avatar);
+        save();
+        ui.tab = "home";
+        unlockApp();
+        toast("ล้างข้อมูลแล้ว");
+      },
+    });
+  },
+};
+
+$("importFile").onchange = (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !data.profile || !data.sec) throw new Error("bad");
+      if (data.kidId !== KID_ID) {
+        const owner = KIDS[data.kidId] ? KIDS[data.kidId].name : "คนอื่น";
+        toast(`ไฟล์นี้เป็นของ ${owner} ใช้กับแอปของ ${KID.name} ไม่ได้`);
+        return;
+      }
+      if (!confirm("นำข้อมูลจากไฟล์สำรองมาแทนข้อมูลปัจจุบันทั้งหมดใช่ไหม? (รหัสผ่านจะกลับไปเป็นรหัสตอนที่สำรองไว้)")) return;
+      db = data;
+      save(); render(); toast("นำข้อมูลกลับมาเรียบร้อย ✓");
+    } catch (err) {
+      toast("ไฟล์นี้ใช้ไม่ได้ ลองเลือกไฟล์สำรองที่ดาวน์โหลดจากแอปนี้");
+    }
+  };
+  reader.readAsText(file);
+};
+
+["main", "nav"].forEach((id) =>
+  $(id).addEventListener("click", (e) => {
+    const el = e.target.closest("[data-action]");
+    if (el && ACTIONS[el.dataset.action]) ACTIONS[el.dataset.action](el.dataset);
+  })
+);
+
+// =====================================================================
+//  เริ่มต้น
+// =====================================================================
+// เก็บสำเนาแอปไว้ในเครื่อง ให้เปิดได้แม้ไม่มีเน็ต (ทำงานเมื่อเปิดจากเว็บจริงเท่านั้น)
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+// ขอให้เบราว์เซอร์เก็บข้อมูลถาวร ไม่ลบเองเมื่อพื้นที่เต็ม
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+document.documentElement.style.setProperty("--accent", KID.accent);
+document.documentElement.style.setProperty("--accent-dark", KID.accentDark);
+document.documentElement.style.setProperty("--accent-soft", KID.accentSoft);
+db = loadDB();
+if (db) lockApp();
+else render();
+</script>
+</body>
+</html>
