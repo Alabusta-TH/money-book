@@ -68,6 +68,7 @@
   /* หน้าแรก */
   .hello { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
   .avatar { font-size: 3.2rem; line-height: 1; }
+  .av-img { width: 1.15em; height: 1.15em; border-radius: 50%; object-fit: cover; vertical-align: middle; display: inline-block; border: 0.06em solid var(--accent); background: #fff; }
   .big-money { font-size: 2.6rem; font-weight: bold; }
   .big-money small { font-size: 1.1rem; color: var(--muted); font-weight: normal; }
   .split2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
@@ -209,6 +210,7 @@
 <div id="lock" class="lock hidden"></div>
 <div id="toast" class="toast"></div>
 <input id="importFile" type="file" accept=".json,application/json" class="hidden">
+<input id="photoFile" type="file" accept="image/*" class="hidden">
 
 <script>
 // =====================================================================
@@ -335,6 +337,13 @@ function loadDB() {
     return raw ? JSON.parse(raw) : null;
   } catch (e) { storageOK = false; return null; }
 }
+// รูปโปรไฟล์ (ถ้ามี) หรือตัวการ์ตูน
+const PHOTO_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+function avatarHTML(p) {
+  if (p && typeof p.photo === "string" && PHOTO_RE.test(p.photo)) return `<img class="av-img" src="${p.photo}" alt="">`;
+  return p ? p.avatar : KID.avatar;
+}
+
 function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); storageOK = true; }
   catch (e) { storageOK = false; }
@@ -365,7 +374,7 @@ let waitUntil = 0;
 function showPinPad({ title, sub = "", length, onDone, onCancel, footer = "" }) {
   const el = $("lock");
   el.classList.remove("hidden");
-  const avatar = db ? db.profile.avatar : (showPinPad.avatar || KID.avatar);
+  const avatar = db ? avatarHTML(db.profile) : (showPinPad.avatar || KID.avatar);
   const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", onCancel ? "cancel" : "", "0", "back"];
   el.innerHTML = `
     <div class="lock-box">
@@ -621,7 +630,7 @@ function render() {
   if (!db) { renderSetup(); return; }
   if (!unlocked) return;
   const p = cur();
-  $("brand").textContent = `${p.avatar} สมุดเงินของ ${KID.name}`;
+  $("brand").innerHTML = `${avatarHTML(p)} สมุดเงินของ ${esc(KID.name)}`;
   $("lockBtn").classList.remove("hidden");
   $("nav").classList.remove("hidden");
   $("nav").innerHTML = TABS
@@ -639,7 +648,7 @@ function viewHome(p) {
   const rate = ms.income > 0 ? Math.round((ms.kept / ms.income) * 100) : null;
   return `
   <section class="card">
-    <div class="hello"><span class="avatar">${p.avatar}</span><div><div class="muted">สวัสดี</div><h1>${esc(KID.name)}</h1></div></div>
+    <div class="hello"><span class="avatar">${avatarHTML(p)}</span><div><div class="muted">สวัสดี</div><h1>${esc(KID.name)}</h1></div></div>
     <div class="muted">ทรัพย์สินทั้งหมดของฉัน</div>
     <div class="big-money">${fmt(T.net)} <small>บาท</small></div>
     <div class="split2">
@@ -867,9 +876,12 @@ function holdingCard(h) {
 function viewSettings(p) {
   return `
   <section class="card">
-    <h2>${p.avatar} ข้อมูลของ ${esc(KID.name)}</h2>
+    <h2>${avatarHTML(p)} ข้อมูลของ ${esc(KID.name)}</h2>
     <div class="muted">${p.tx.length} รายการ · ${p.holdings.length} การลงทุน</div>
-    <p><button class="ghost" data-action="editAvatar">🎨 เปลี่ยนตัวการ์ตูน</button></p>
+    <div class="h-actions" style="margin-top:12px">
+      <button data-action="pickPhoto">📷 ${p.photo ? "เปลี่ยนรูปโปรไฟล์" : "ใส่รูปโปรไฟล์"}</button>
+      <button class="ghost" data-action="editAvatar">🎨 ${p.photo ? "กลับไปใช้ตัวการ์ตูน" : "เปลี่ยนตัวการ์ตูน"}</button>
+    </div>
   </section>
   <section class="card">
     <h2>🔒 รหัสผ่าน</h2>
@@ -1284,10 +1296,11 @@ const ACTIONS = {
     const p = cur();
     openForm({
       title: "🎨 เปลี่ยนตัวการ์ตูน",
-      fields: [{ id: "avatar", label: "เลือกตัวการ์ตูนประจำตัว", type: "chips", emoji: true, options: AVATARS.map((a) => ({ value: a, label: a })), value: p.avatar }],
-      onSubmit: (v) => { p.avatar = v.avatar; save(); },
+      fields: [{ id: "avatar", label: p.photo ? "เลือกตัวการ์ตูนประจำตัว (จะใช้แทนรูปถ่าย)" : "เลือกตัวการ์ตูนประจำตัว", type: "chips", emoji: true, options: AVATARS.map((a) => ({ value: a, label: a })), value: p.avatar }],
+      onSubmit: (v) => { p.avatar = v.avatar; delete p.photo; save(); },
     });
   },
+  pickPhoto: () => $("photoFile").click(),
   changePin: () => changePin(),
   changeParent: () => changeParent(),
   exportData: () => {
@@ -1309,7 +1322,9 @@ const ACTIONS = {
         const r = checkPin(pin, "parent");
         if (r !== true) return r;
         if (!confirm(`ล้างข้อมูลทั้งหมดของ ${KID.name} ใช่ไหม? ลบแล้วกู้คืนไม่ได้`)) { unlockApp(); return; }
+        const photo = db.profile.photo;
         db.profile = newProfile(db.profile.avatar);
+        if (photo) db.profile.photo = photo;
         save();
         ui.tab = "home";
         unlockApp();
@@ -1341,6 +1356,40 @@ $("importFile").onchange = (e) => {
     }
   };
   reader.readAsText(file);
+};
+
+// รูปโปรไฟล์: ตัดเป็นสี่เหลี่ยมจัตุรัสตรงกลาง ย่อเหลือ 320x320 แล้วเก็บในเครื่อง
+$("photoFile").onchange = (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.onload = () => {
+    const S = 320;
+    const side = Math.min(img.naturalWidth, img.naturalHeight);
+    const c = document.createElement("canvas");
+    c.width = c.height = S;
+    const g = c.getContext("2d");
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, S, S);
+    g.drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+    URL.revokeObjectURL(url);
+    const p = cur();
+    const old = p.photo;
+    p.photo = c.toDataURL("image/jpeg", 0.82);
+    save();
+    if (!storageOK) {
+      if (old) p.photo = old; else delete p.photo;
+      save();
+      toast("บันทึกรูปไม่ได้ พื้นที่เก็บข้อมูลในเครื่องอาจเต็ม");
+      return;
+    }
+    render();
+    toast("เปลี่ยนรูปโปรไฟล์แล้ว ✓");
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast("เปิดรูปนี้ไม่ได้ ลองเลือกรูปอื่น"); };
+  img.src = url;
 };
 
 ["main", "nav"].forEach((id) =>

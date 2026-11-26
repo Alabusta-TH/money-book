@@ -1,6 +1,6 @@
 // Service worker: keeps a copy of the app on the iPad so it opens without internet.
-// build.ps1 replaces 20261126102126 on every build so the iPad picks up new versions.
-const VERSION = "20261126102126";
+// build.ps1 replaces 20261126215304 on every build so the iPad picks up new versions.
+const VERSION = "20261126215304";
 const CACHE = "money-book-" + VERSION;
 const FILES = [
   "./",
