@@ -873,6 +873,13 @@ function holdingCard(h) {
 }
 
 // ---------- ตั้งค่า ----------
+// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127053226 เช่น 20261127093000 -> 27/11/2026 09:30
+const APP_VERSION = "20261127053226";
+function appVersionText() {
+  const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(APP_VERSION);
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : "ทดลอง";
+}
+
 function viewSettings(p) {
   return `
   <section class="card">
@@ -916,7 +923,8 @@ function viewSettings(p) {
     <h2>⚠️ ล้างข้อมูล</h2>
     <p style="margin-top:0" class="muted">ลบรายการ เงินลงทุน และการตั้งค่ากระเป๋าทั้งหมดของ ${esc(KID.name)} (รหัสผ่านยังเหมือนเดิม) ต้องใช้รหัสผู้ปกครอง ลบแล้วกู้คืนไม่ได้ ยกเว้นมีไฟล์สำรอง</p>
     <button class="danger" data-action="resetKid">ล้างข้อมูลของ ${esc(KID.name)}</button>
-  </section>`;
+  </section>
+  <p class="muted" style="text-align:center">เวอร์ชันแอป ${appVersionText()}</p>`;
 }
 
 // =====================================================================
@@ -1403,7 +1411,14 @@ $("photoFile").onchange = (e) => {
 //  เริ่มต้น
 // =====================================================================
 // เก็บสำเนาแอปไว้ในเครื่อง ให้เปิดได้แม้ไม่มีเน็ต (ทำงานเมื่อเปิดจากเว็บจริงเท่านั้น)
-if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+// ทุกครั้งที่กลับมาเปิดแอป ให้เช็กว่ามีเวอร์ชันใหม่ไหม
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+  navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+}
 // ขอให้เบราว์เซอร์เก็บข้อมูลถาวร ไม่ลบเองเมื่อพื้นที่เต็ม
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
