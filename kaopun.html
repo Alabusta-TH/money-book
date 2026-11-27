@@ -245,6 +245,8 @@ const DEFAULT_WALLETS = [
   { emoji: "💝", name: "แบ่งปัน", goal: "ให้คนอื่น ทำบุญ", target: 0, pct: 10 },
 ];
 
+const INVEST_WALLET_INDEX = 3; // กระเป๋าใบที่ 4 (📈 ลงทุน) นับเป็นเงินลงทุน
+
 const INCOME_CATS = [
   { id: "allowance", emoji: "🪙", name: "ค่าขนม" },
   { id: "job", emoji: "💪", name: "งานพิเศษ" },
@@ -720,7 +722,15 @@ function totals(p) {
   const cash = sum(Object.values(bal));
   const invest = sum(p.holdings.map((h) => h.value));
   const cost = sum(p.holdings.map((h) => h.cost));
-  return { bal, cash, invest, cost, net: cash + invest };
+  // กระเป๋าใบที่ 4 คือกระเป๋าลงทุน: เงินในนี้นับเป็นเงินลงทุนที่รอนำไปลงทุน
+  const investWallet = p.wallets[INVEST_WALLET_INDEX];
+  const waiting = investWallet ? bal[investWallet.id] || 0 : 0;
+  return {
+    bal, cash, invest, cost, net: cash + invest,
+    investWallet, waiting,
+    cashOther: cash - waiting,     // เงินใน 4 กระเป๋าที่เหลือ
+    investAll: invest + waiting,   // เงินลงทุนรวม = รอลงทุน + ลงทุนแล้ว
+  };
 }
 function monthStats(p, ym) {
   const list = p.tx.filter((t) => t.date.slice(0, 7) === ym);
@@ -787,8 +797,8 @@ function viewHome(p) {
     <div class="muted">ทรัพย์สินทั้งหมดของฉัน</div>
     <div class="big-money">${fmt(T.net)} <small>บาท</small></div>
     <div class="split2">
-      <div>👛 เงินใน 5 กระเป๋า<b>${fmt(T.cash)}</b></div>
-      <div>📈 เงินลงทุน<b>${fmt(T.invest)}</b></div>
+      <div>👛 เงินใน 4 กระเป๋า<b>${fmt(T.cashOther)}</b><span class="small muted">ไม่รวมกระเป๋าลงทุน</span></div>
+      <div>📈 เงินลงทุน<b>${fmt(T.investAll)}</b><span class="small muted">รอลงทุน ${fmt(T.waiting)}<br>ลงทุนแล้ว ${fmt(T.invest)}</span></div>
     </div>
   </section>
   <section class="quick3">
@@ -957,6 +967,11 @@ function viewInvest(p) {
   return `
   <section class="card">
     <h2>📈 เงินลงทุนของฉัน</h2>
+    <div class="split2" style="margin:0 0 12px">
+      <div>💰 เงินลงทุนทั้งหมด<b>${fmt(T.investAll)}</b></div>
+      <div>${T.investWallet ? `${T.investWallet.emoji} ${esc(T.investWallet.name)}` : "กระเป๋าลงทุน"} รอนำไปลงทุน<b>${fmt(T.waiting)}</b></div>
+    </div>
+    <div class="muted" style="margin-bottom:6px">ส่วนที่ลงทุนไปแล้ว</div>
     <div class="stats3">
       <div>เงินต้นที่ลงไป<b>${fmt(T.cost)}</b></div>
       <div>มูลค่าตอนนี้<b>${fmt(T.invest)}</b></div>
@@ -1008,8 +1023,8 @@ function holdingCard(h) {
 }
 
 // ---------- ตั้งค่า ----------
-// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127131820 เช่น 20261127093000 -> 27/11/2026 09:30
-const APP_VERSION = "20261127131820";
+// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127135300 เช่น 20261127093000 -> 27/11/2026 09:30
+const APP_VERSION = "20261127135300";
 function appVersionText() {
   const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(APP_VERSION);
   return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : "ทดลอง";
