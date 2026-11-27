@@ -499,6 +499,8 @@ function newProfile(avatar) {
   };
 }
 const cur = () => db.profile;
+// ชื่อที่ลูกตั้งเองในแอป (ถ้ายังไม่ได้ตั้ง ใช้ชื่อเดิม)
+const kidName = () => (db && db.profile && String(db.profile.name || "").trim()) || KID.name;
 const walletOf = (p, id) => p.wallets.find((w) => w.id === id);
 
 // =====================================================================
@@ -606,7 +608,7 @@ function lockApp() {
   closeModal();
   $("main").innerHTML = "";
   showPinPad({
-    title: `สวัสดี ${esc(KID.name)}`,
+    title: `สวัสดี ${esc(kidName())}`,
     sub: `ใส่รหัส ${KID_PIN_LENGTH} หลักเพื่อเปิดสมุดเงิน`,
     length: KID_PIN_LENGTH,
     footer: `<p><button class="link" id="forgotBtn">ลืมรหัส? ให้พ่อแม่ช่วย</button></p>`,
@@ -775,7 +777,7 @@ function render() {
   if (!db) { renderSetup(); return; }
   if (!unlocked) return;
   const p = cur();
-  $("brand").innerHTML = `${avatarHTML(p)} สมุดเงินของ ${esc(KID.name)}`;
+  $("brand").innerHTML = `${avatarHTML(p)} สมุดเงินของ ${esc(kidName())}`;
   $("lockBtn").classList.remove("hidden");
   $("nav").classList.remove("hidden");
   $("nav").innerHTML = TABS
@@ -793,7 +795,7 @@ function viewHome(p) {
   const rate = ms.income > 0 ? Math.round((ms.kept / ms.income) * 100) : null;
   return `
   <section class="card">
-    <div class="hello"><span class="avatar">${avatarHTML(p)}</span><div><div class="muted">สวัสดี</div><h1>${esc(KID.name)}</h1></div></div>
+    <div class="hello"><span class="avatar">${avatarHTML(p)}</span><div><div class="muted">สวัสดี</div><h1>${esc(kidName())}</h1></div></div>
     <div class="muted">ทรัพย์สินทั้งหมดของฉัน</div>
     <div class="big-money">${fmt(T.net)} <small>บาท</small></div>
     <div class="split2">
@@ -977,7 +979,10 @@ function viewInvest(p) {
       <div>มูลค่าตอนนี้<b>${fmt(T.invest)}</b></div>
       <div>กำไร/ขาดทุน<b class="${gain >= 0 ? "pos" : "neg"}">${gain >= 0 ? "+" : ""}${fmt(gain)}<br><span class="small">(${gain >= 0 ? "+" : ""}${gainPct.toFixed(1)}%)</span></b></div>
     </div>
-    <div style="text-align:center;margin-top:16px"><button data-action="addHolding">➕ เพิ่มการลงทุน</button></div>
+    <div class="h-actions" style="justify-content:center;margin-top:16px">
+      <button data-action="addHolding">➕ เพิ่มการลงทุน</button>
+      ${p.holdings.length ? `<button class="ghost" data-action="revalueAll">🔄 อัปเดตมูลค่าทั้งหมด</button>` : ""}
+    </div>
   </section>
   ${p.holdings.length ? `
   <section class="card">
@@ -1017,14 +1022,15 @@ function holdingCard(h) {
       <button class="small" data-action="topup" data-id="${h.id}">➕ ลงเงินเพิ่ม</button>
       <button class="small ghost" data-action="revalue" data-id="${h.id}">🔄 อัปเดตมูลค่า</button>
       <button class="small ghost" data-action="withdrawH" data-id="${h.id}">💰 ถอน/ขาย</button>
+      <button class="small ghost" data-action="renameHolding" data-id="${h.id}">✏️ แก้ชื่อ</button>
       <button class="small ghost" data-action="delHolding" data-id="${h.id}">🗑️ ลบ</button>
     </div>
   </section>`;
 }
 
 // ---------- ตั้งค่า ----------
-// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127135300 เช่น 20261127093000 -> 27/11/2026 09:30
-const APP_VERSION = "20261127135300";
+// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127140848 เช่น 20261127093000 -> 27/11/2026 09:30
+const APP_VERSION = "20261127140848";
 function appVersionText() {
   const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(APP_VERSION);
   return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : "ทดลอง";
@@ -1033,10 +1039,11 @@ function appVersionText() {
 function viewSettings(p) {
   return `
   <section class="card">
-    <h2>${avatarHTML(p)} ข้อมูลของ ${esc(KID.name)}</h2>
+    <h2>${avatarHTML(p)} ข้อมูลของ ${esc(kidName())}</h2>
     <div class="muted">${p.tx.length} รายการ · ${p.holdings.length} การลงทุน</div>
     <div class="h-actions" style="margin-top:12px">
       <button data-action="pickPhoto">📷 ${p.photo ? "เปลี่ยนรูปโปรไฟล์" : "ใส่รูปโปรไฟล์"}</button>
+      <button class="ghost" data-action="editName">✏️ เปลี่ยนชื่อ</button>
       <button class="ghost" data-action="editAvatar">🎨 ${p.photo ? "กลับไปใช้ตัวการ์ตูน" : "เปลี่ยนตัวการ์ตูน"}</button>
     </div>
   </section>
@@ -1318,21 +1325,35 @@ function openAddHolding() {
     title: "➕ เพิ่มการลงทุน",
     fields: [
       { id: "type", label: "ลงทุนในอะไร?", type: "chips", options: INVEST_TYPES.map((t) => ({ value: t.id, label: `${t.emoji} ${t.name}` })), value: "savings" },
-      { id: "name", label: "ตั้งชื่อ", type: "text", max: 40, placeholder: "เช่น บัญชีออมสินของหนู, สลากออมสิน 2569" },
-      { id: "amount", label: "เงินต้นที่ลงไป (บาท)", type: "number", big: true, placeholder: "0" },
-      { id: "from", label: "เอาเงินมาจากไหน?", type: "chips", options: walletChips(p, bal, [{ value: "", label: "มีอยู่แล้ว<small>ไม่หักจากกระเป๋า</small>" }]), value: investWallet },
-      { id: "value", label: "มูลค่าตอนนี้ (ถ้าเท่ากับเงินต้น ไม่ต้องใส่)", type: "number", placeholder: "เท่ากับเงินต้น" },
+      { id: "name", label: "ตั้งชื่อ (ตั้งได้ตามใจ แก้ทีหลังได้)", type: "text", max: 40, placeholder: "เช่น MEGA10AI-A, หุ้น NVDA, สลากออมสิน" },
+      { id: "value", label: "มูลค่าตอนนี้ (บาท)", type: "number", big: true, placeholder: "0" },
+      { id: "info", type: "info", label: "ดูมูลค่าและกำไรได้จากแอปลงทุน ถ้าเพิ่งซื้อวันนี้ ไม่ต้องใส่กำไร" },
+      { id: "gainType", label: "ตอนนี้กำไรหรือขาดทุน?", type: "chips", options: [{ value: "gain", label: "📈 กำไร" }, { value: "loss", label: "📉 ขาดทุน" }], value: "gain" },
+      { id: "gain", label: "กำไรหรือขาดทุนกี่บาท? (ไม่มีให้เว้นว่าง)", type: "number", placeholder: "0" },
+      { id: "from", label: "หักเงินจากกระเป๋าไหน? (หักเท่ากับมูลค่าตอนนี้)", type: "chips", options: walletChips(p, bal, [{ value: "", label: "มีอยู่แล้ว<small>ไม่หักจากกระเป๋า</small>" }]), value: investWallet },
       { id: "start", label: "วันที่เริ่มลงทุน", type: "date", value: todayISO() },
     ],
     onSubmit: (v) => {
       if (!v.name) return "ตั้งชื่อการลงทุนด้วยนะ";
-      if (!(v.amount > 0)) return "ใส่เงินต้นที่ลงไปก่อนนะ";
-      if (v.from && v.amount > bal[v.from] + 0.001) return `กระเป๋านี้มีเงินแค่ ${fmt(bal[v.from])} บาท`;
-      const value = isNaN(v.value) ? v.amount : v.value;
+      if (!(v.value > 0)) return "ใส่มูลค่าตอนนี้ก่อนนะ";
+      const gain = isNaN(v.gain) ? 0 : Math.abs(v.gain) * (v.gainType === "loss" ? -1 : 1);
+      const cost = Math.round((v.value - gain) * 100) / 100;
+      if (cost < 0) return "กำไรมากกว่ามูลค่าตอนนี้ไม่ได้ ลองตรวจตัวเลขอีกครั้ง";
+      let take = v.value;
+      if (v.from) {
+        const has = Math.max(0, bal[v.from]);
+        if (take > has + 0.001) {
+          const w = walletOf(p, v.from);
+          if (has <= 0) return `กระเป๋า ${w.name} ไม่มีเงินเหลือ เลือก "มีอยู่แล้ว" แทนได้`;
+          if (!confirm(`กระเป๋า ${w.name} มีเงิน ${fmt(has)} บาท น้อยกว่ามูลค่า ${fmt(v.value)} บาท\nหักเท่าที่มี ${fmt(has)} บาท ใช่ไหม?`)) return "เลือกกระเป๋าอื่น หรือเลือก \"มีอยู่แล้ว\"";
+          take = has;
+        }
+      }
       const start = v.start || todayISO();
-      const h = { id: uid(), type: v.type, name: v.name, cost: v.amount, value, start, history: [{ date: start, value }] };
+      const h = { id: uid(), type: v.type, name: v.name, cost, value: v.value, start, history: [{ date: start, value: v.value }] };
       p.holdings.push(h);
-      addTx(p, { type: "invest", amount: v.amount, wallet: v.from, holding: h.id, note: "", date: start });
+      // amount = เงินที่ออกจากกระเป๋า, costPart/valuePart ใช้ย้อนกลับตอนลบรายการ
+      addTx(p, { type: "invest", amount: take, costPart: cost, valuePart: v.value, wallet: v.from, holding: h.id, note: "", date: start });
       toast("เพิ่มการลงทุนแล้ว 📈");
     },
   });
@@ -1373,6 +1394,53 @@ function openRevalue(id) {
       h.history.push({ date: todayISO(), value: v.value });
       save();
       toast(diff >= 0 ? `มูลค่าเพิ่มขึ้น ${fmt(diff)} บาท 🎉` : `มูลค่าลดลง ${fmt(-diff)} บาท`);
+    },
+  });
+}
+// อัปเดตมูลค่าทุกการลงทุนพร้อมกัน (เช่น ดูยอดจากแอปลงทุนแล้วกรอกทีเดียว)
+function openRevalueAll() {
+  const p = cur();
+  const T = totals(p);
+  openForm({
+    title: "🔄 อัปเดตมูลค่าทั้งหมด",
+    fields: [
+      { type: "info", label: `มูลค่ารวมล่าสุด ${fmt(T.invest)} บาท<br>ดูมูลค่าตอนนี้จากแอปลงทุน แล้วกรอกของแต่ละตัว ตัวไหนไม่เปลี่ยนไม่ต้องแก้` },
+      ...p.holdings.map((h) => ({ id: "v_" + h.id, label: `${catOf(INVEST_TYPES, h.type).emoji} ${esc(h.name)} (บาท)`, type: "number", value: h.value })),
+    ],
+    onSubmit: (v) => {
+      const bad = p.holdings.find((h) => isNaN(v["v_" + h.id]) || v["v_" + h.id] < 0);
+      if (bad) return `ใส่มูลค่าของ ${bad.name} ให้ถูกต้องนะ`;
+      let before = 0, after = 0;
+      p.holdings.forEach((h) => {
+        const nv = v["v_" + h.id];
+        before += h.value;
+        after += nv;
+        if (Math.abs(nv - h.value) > 0.001) {
+          h.value = nv;
+          h.history.push({ date: todayISO(), value: nv });
+        }
+      });
+      save();
+      const diff = after - before;
+      toast(Math.abs(diff) < 0.005 ? "มูลค่าเท่าเดิม" : diff > 0 ? `มูลค่ารวมเพิ่มขึ้น ${fmt(diff)} บาท 🎉` : `มูลค่ารวมลดลง ${fmt(-diff)} บาท`);
+    },
+  });
+}
+function openRenameHolding(id) {
+  const p = cur();
+  const h = p.holdings.find((x) => x.id === id);
+  openForm({
+    title: "✏️ แก้ชื่อการลงทุน",
+    fields: [
+      { id: "name", label: "ชื่อใหม่", type: "text", max: 40, value: h.name },
+      { id: "type", label: "ประเภท", type: "chips", options: INVEST_TYPES.map((t) => ({ value: t.id, label: `${t.emoji} ${t.name}` })), value: h.type },
+    ],
+    onSubmit: (v) => {
+      if (!v.name) return "ตั้งชื่อด้วยนะ";
+      h.name = v.name;
+      h.type = v.type || h.type;
+      save();
+      toast("แก้ชื่อแล้ว");
     },
   });
 }
@@ -1446,7 +1514,10 @@ const ACTIONS = {
     const t = p.tx.find((x) => x.id === d.id);
     if (!t || !confirm("ลบรายการนี้ใช่ไหม?")) return;
     const h = p.holdings.find((x) => x.id === t.holding);
-    if (h && t.type === "invest") { h.cost = Math.max(0, h.cost - t.amount); h.value = Math.max(0, h.value - t.amount); }
+    if (h && t.type === "invest") {
+      h.cost = Math.max(0, h.cost - (t.costPart ?? t.amount));
+      h.value = Math.max(0, h.value - (t.valuePart ?? t.amount));
+    }
     if (h && t.type === "withdraw") { h.cost += t.costPart || 0; h.value += t.amount; }
     p.tx = p.tx.filter((x) => x.id !== d.id);
     save(); render(); toast("ลบรายการแล้ว");
@@ -1454,6 +1525,23 @@ const ACTIONS = {
   addHolding: () => openAddHolding(),
   topup: (d) => openTopup(d.id),
   revalue: (d) => openRevalue(d.id),
+  revalueAll: () => openRevalueAll(),
+  renameHolding: (d) => openRenameHolding(d.id),
+  editName: () => {
+    const p = cur();
+    openForm({
+      title: "✏️ เปลี่ยนชื่อที่แสดงในแอป",
+      fields: [
+        { id: "name", label: "ชื่อที่อยากให้แอปเรียก", type: "text", max: 20, value: kidName() },
+        { type: "info", label: `ชื่อในไฟล์สำรองและ Google Sheet ยังเป็น ${esc(KID.name)} เหมือนเดิม` },
+      ],
+      onSubmit: (v) => {
+        p.name = v.name || KID.name;
+        save();
+        toast(`สวัสดี ${p.name}!`);
+      },
+    });
+  },
   withdrawH: (d) => openWithdrawH(d.id),
   delHolding: (d) => {
     const p = cur();

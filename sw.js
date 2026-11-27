@@ -1,8 +1,8 @@
 // Service worker: keeps a copy of the app on the iPad so it opens without internet.
-// build.ps1 replaces 20261127135300 on every build so the iPad picks up new versions.
+// build.ps1 replaces 20261127140848 on every build so the iPad picks up new versions.
 //   - pages (html): try the internet first (waits up to 4 seconds), use the saved copy when offline
 //   - icons and other files: use the saved copy, refresh it in the background
-const VERSION = "20261127135300";
+const VERSION = "20261127140848";
 const CACHE = "money-book-" + VERSION;
 const PAGE_TIMEOUT_MS = 4000;
 const FILES = [
