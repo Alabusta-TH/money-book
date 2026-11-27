@@ -348,6 +348,141 @@ function save() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(db)); storageOK = true; }
   catch (e) { storageOK = false; }
   renderBanner();
+  scheduleSync();
+}
+
+// =====================================================================
+//  ส่งข้อมูลเข้า Google Sheet (ถ้าผู้ปกครองเชื่อมต่อไว้)
+//  ข้อมูลในแอปเป็นตัวจริง ทุกครั้งที่ส่ง ชีตจะถูกแทนที่ด้วยข้อมูลทั้งหมดของคนนี้
+//  ที่อยู่และรหัสลับเก็บแยกไว้ในเครื่อง ไม่อยู่ในไฟล์สำรอง
+// =====================================================================
+const SYNC_KEY = STORAGE_KEY + "-sheet";
+const SYNC_DELAY_MS = 3000;
+let sync = loadSync();
+let syncTimer = null;
+let syncBusy = false;
+
+function loadSync() {
+  try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch (e) { return {}; }
+}
+function saveSync() {
+  try { localStorage.setItem(SYNC_KEY, JSON.stringify(sync)); } catch (e) { /* ไม่เป็นไร */ }
+}
+// รหัสเชื่อมต่อ = ลิงก์ Web app ของ Google Apps Script ต่อท้ายด้วย ?key=รหัสลับ
+function parseConnect(s) {
+  try {
+    const u = new URL(String(s).trim());
+    const key = u.searchParams.get("key");
+    if (u.protocol !== "https:" || u.hostname !== "script.google.com" || !key) return null;
+    u.search = "";
+    u.hash = "";
+    return { url: u.href, key };
+  } catch (e) { return null; }
+}
+
+// แปลงข้อมูลในแอปเป็นแถวของชีต (1 แถว = เงินเข้าหรือออกจาก 1 กระเป๋า)
+function sheetPayload(p) {
+  const wName = (id) => { const w = walletOf(p, id); return w ? w.name : ""; };
+  const catName = (list, id) => { const c = list.find((x) => x.id === id); return c ? c.name : id || ""; };
+  const hName = (id) => { const h = p.holdings.find((x) => x.id === id); return h ? h.name : "(ลบออกจากรายการแล้ว)"; };
+  const log = [];
+  const row = (t, type, cat, wid, inAmt, outAmt, note) =>
+    log.push([t.date, type, cat, wid ? wName(wid) : "", inAmt || "", outAmt || "", note || ""]);
+  const order = (a, b) => (a.date || "").localeCompare(b.date || "") || (a.created || "").localeCompare(b.created || "");
+  [...p.tx].sort(order).forEach((t) => {
+    if (t.type === "income") {
+      Object.entries(t.split || {}).filter(([, v]) => v > 0)
+        .forEach(([wid, v]) => row(t, "รายรับ", catName(INCOME_CATS, t.cat), wid, v, 0, t.note));
+    } else if (t.type === "expense") {
+      row(t, "รายจ่าย", catName(EXPENSE_CATS, t.cat), t.wallet, 0, t.amount, t.note);
+    } else if (t.type === "transfer") {
+      row(t, "โอนระหว่างกระเป๋า", "", t.from, 0, t.amount, t.note);
+      row(t, "โอนระหว่างกระเป๋า", "", t.to, t.amount, 0, t.note);
+    } else if (t.type === "invest") {
+      if (t.wallet) row(t, "ลงทุน", hName(t.holding), t.wallet, 0, t.amount, t.note);
+      else row(t, "ลงทุน", hName(t.holding), "", 0, 0, `${t.note ? t.note + " " : ""}ลงทุน ${fmt(t.amount)} บาท โดยไม่ใช้เงินจากกระเป๋า`);
+    } else if (t.type === "withdraw") {
+      if (t.wallet) row(t, "ถอนเงินลงทุน", hName(t.holding), t.wallet, t.amount, 0, t.note);
+      else row(t, "ถอนเงินลงทุน", hName(t.holding), "", 0, 0, `${t.note ? t.note + " " : ""}ถอน ${fmt(t.amount)} บาท ไม่ได้ใส่กระเป๋า`);
+    }
+  });
+  const wallets = p.wallets.map((w) => [w.name, w.goal || "", Number(w.target) || 0, w.due || "", (Number(w.pct) || 0) / 100]);
+  const holdings = p.holdings.map((h) => {
+    const type = INVEST_TYPES.find((x) => x.id === h.type) || INVEST_TYPES[INVEST_TYPES.length - 1];
+    const last = h.history && h.history.length ? h.history[h.history.length - 1].date : h.start;
+    return [h.name, type.name, RISK[type.risk].label, h.cost, h.value, last || ""];
+  });
+  return { kidId: KID_ID, log, wallets, holdings };
+}
+
+// ส่งหลังบันทึกไปแล้ว 3 วินาที (บันทึกติดกันหลายครั้งจะส่งครั้งเดียว)
+function scheduleSync() {
+  if (!sync.url) return;
+  sync.dirty = true;
+  saveSync();
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(sendToSheet, SYNC_DELAY_MS);
+}
+
+async function postToSheet(body) {
+  const res = await fetch(sync.url, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ key: sync.key, ...body }),
+  });
+  const r = await res.json();
+  if (!r.ok) throw new Error(r.error || "error");
+  return r;
+}
+
+async function sendToSheet() {
+  if (!sync.url || !db) return false;
+  if (syncBusy) { scheduleSync(); return false; }
+  if (!navigator.onLine) { sync.lastErr = "offline"; saveSync(); return false; }
+  syncBusy = true;
+  let ok = false;
+  try {
+    await postToSheet(sheetPayload(db.profile));
+    sync.dirty = false;
+    sync.lastOk = new Date().toISOString();
+    sync.lastErr = "";
+    ok = true;
+  } catch (e) {
+    sync.lastErr = String((e && e.message) || e);
+  } finally {
+    syncBusy = false;
+    saveSync();
+    if (unlocked && ui.tab === "settings" && $("modal").classList.contains("hidden")) render();
+  }
+  return ok;
+}
+
+// ขอรหัสผู้ปกครองก่อนทำบางอย่าง
+function withParentPin(why, then) {
+  showPinPad({
+    title: "รหัสผู้ปกครอง", sub: why, length: PARENT_PIN_LENGTH,
+    onCancel: unlockApp,
+    onDone: (pin) => {
+      const r = checkPin(pin, "parent");
+      if (r !== true) return r;
+      unlockApp();
+      then();
+    },
+  });
+}
+
+function syncStatusText() {
+  if (!sync.url) return "";
+  const when = (iso) => new Date(iso).toLocaleString("th-TH", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const errText = {
+    offline: "ยังไม่มีอินเทอร์เน็ต จะส่งให้เองเมื่อต่อเน็ต",
+    "wrong-key": "รหัสลับไม่ถูกต้อง ให้ผู้ปกครองเชื่อมต่อใหม่",
+  };
+  if (sync.dirty || sync.lastErr) {
+    const why = errText[sync.lastErr] || (sync.lastErr ? "ส่งไม่สำเร็จ จะลองใหม่ครั้งหน้าที่เปิดแอป" : "กำลังรอส่ง");
+    return `⏳ มีข้อมูลที่ยังไม่ได้ส่ง (${why})${sync.lastOk ? ` · ส่งสำเร็จล่าสุด ${when(sync.lastOk)}` : ""}`;
+  }
+  return sync.lastOk ? `✅ ส่งข้อมูลล่าสุดแล้ว ${when(sync.lastOk)}` : "ยังไม่เคยส่ง";
 }
 function renderBanner() {
   const b = $("banner");
@@ -873,8 +1008,8 @@ function holdingCard(h) {
 }
 
 // ---------- ตั้งค่า ----------
-// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127053226 เช่น 20261127093000 -> 27/11/2026 09:30
-const APP_VERSION = "20261127053226";
+// build.ps1 ใส่วันเวลาที่สร้างแอปแทน 20261127131820 เช่น 20261127093000 -> 27/11/2026 09:30
+const APP_VERSION = "20261127131820";
 function appVersionText() {
   const m = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/.exec(APP_VERSION);
   return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : "ทดลอง";
@@ -906,6 +1041,18 @@ function viewSettings(p) {
       <button data-action="exportData">⬇️ ดาวน์โหลดไฟล์สำรอง</button>
       <button class="ghost" data-action="importData">⬆️ นำข้อมูลกลับจากไฟล์สำรอง</button>
     </div>
+  </section>
+  <section class="card">
+    <h2>📊 ส่งข้อมูลเข้า Google Sheet</h2>
+    ${sync.url ? `
+      <p style="margin-top:0">${syncStatusText()}</p>
+      <p class="muted">แอปจะส่งข้อมูลทั้งหมดของ ${esc(KID.name)} เข้าชีตเองทุกครั้งที่บันทึกตอนมีอินเทอร์เน็ต ถ้าไม่มีเน็ตจะส่งให้ภายหลัง</p>
+      <div class="h-actions">
+        <button data-action="syncNow">🔄 ส่งตอนนี้</button>
+        <button class="ghost" data-action="disconnectSheet">ยกเลิกการเชื่อมต่อ</button>
+      </div>` : `
+      <p style="margin-top:0" class="muted">ยังไม่ได้เชื่อมต่อ ผู้ปกครองใส่รหัสเชื่อมต่อเพื่อให้แอปส่งข้อมูลเข้า Google Sheet เอง</p>
+      <button class="ghost" data-action="connectSheet">🔗 เชื่อมต่อ Google Sheet (ผู้ปกครอง)</button>`}
   </section>
   <section class="card">
     <h2>📱 ติดตั้งลงหน้าจอ iPad</h2>
@@ -1309,6 +1456,43 @@ const ACTIONS = {
     });
   },
   pickPhoto: () => $("photoFile").click(),
+  connectSheet: () => withParentPin("เชื่อมต่อ Google Sheet", () => {
+    openForm({
+      title: "🔗 เชื่อมต่อ Google Sheet",
+      submit: "เชื่อมต่อ",
+      fields: [
+        { type: "info", label: "วางรหัสเชื่อมต่อที่ขึ้นต้นด้วย https://script.google.com/ และมี ?key= ต่อท้าย" },
+        { id: "code", label: "รหัสเชื่อมต่อ", type: "text", placeholder: "https://script.google.com/macros/s/.../exec?key=..." },
+      ],
+      onSubmit: (v) => {
+        const c = parseConnect(v.code);
+        if (!c) return "รหัสนี้ไม่ถูกต้อง ต้องขึ้นต้นด้วย https://script.google.com/ และมี ?key= ต่อท้าย";
+        sync = { url: c.url, key: c.key, dirty: true };
+        saveSync();
+        toast("กำลังทดสอบการเชื่อมต่อ...");
+        postToSheet({ action: "ping" })
+          .then(() => sendToSheet())
+          .then((ok) => toast(ok ? "เชื่อมต่อสำเร็จ ส่งข้อมูลเข้าชีตแล้ว ✓" : "เชื่อมต่อแล้ว แต่ยังส่งไม่สำเร็จ จะลองใหม่ภายหลัง"))
+          .catch((e) => {
+            sync.lastErr = String((e && e.message) || e);
+            saveSync();
+            render();
+            toast(sync.lastErr === "wrong-key" ? "รหัสลับไม่ถูกต้อง ลองตรวจรหัสเชื่อมต่ออีกครั้ง" : "ยังติดต่อชีตไม่ได้ ตรวจอินเทอร์เน็ตหรือรหัสเชื่อมต่อ");
+          });
+      },
+    });
+  }),
+  syncNow: () => {
+    toast("กำลังส่งข้อมูล...");
+    sendToSheet().then((ok) => toast(ok ? "ส่งข้อมูลเข้าชีตแล้ว ✓" : "ยังส่งไม่สำเร็จ " + (sync.lastErr === "offline" ? "(ไม่มีอินเทอร์เน็ต)" : "")));
+  },
+  disconnectSheet: () => withParentPin("ยกเลิกการเชื่อมต่อ Google Sheet", () => {
+    if (!confirm("ยกเลิกการเชื่อมต่อใช่ไหม? ข้อมูลที่อยู่ในชีตแล้วจะยังอยู่ แต่แอปจะไม่ส่งข้อมูลใหม่")) return;
+    sync = {};
+    saveSync();
+    render();
+    toast("ยกเลิกการเชื่อมต่อแล้ว");
+  }),
   changePin: () => changePin(),
   changeParent: () => changeParent(),
   exportData: () => {
@@ -1419,6 +1603,12 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     });
   }).catch(() => {});
 }
+// ส่งข้อมูลเข้า Google Sheet: ตอนเปิดแอป ตอนกลับมาที่แอป และตอนอินเทอร์เน็ตกลับมา
+if (sync.url) setTimeout(sendToSheet, SYNC_DELAY_MS);
+window.addEventListener("online", () => { if (sync.url && sync.dirty) sendToSheet(); });
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && sync.url && sync.dirty) sendToSheet();
+});
 // ขอให้เบราว์เซอร์เก็บข้อมูลถาวร ไม่ลบเองเมื่อพื้นที่เต็ม
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
